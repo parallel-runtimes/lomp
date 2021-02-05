@@ -1,0 +1,18 @@
+//===-- version.h.in - Version information file -------------------*- C -*-===//
+//
+// Part of the LOMP project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef VERSION_H_INCLUDED
+#define VERSION_H_INCLUDED
+
+#define LOMP_VERSION "${LOMP_VERSION}"
+#define LOMP_SOVERSION "${LOMP_SOVERSION}"
+#define LOMP_COMPILE_OPTIONS "${LOMP_COMPILE_OPTIONS}"
+#define LOMP_COMPILE_DEFINITIONS "${LOMP_COMPILE_DEFINITIONS}"
+#define LOMP_GIT_COMMIT_ID "${LOMP_GIT_COMMIT_ID}"
+
+#endif

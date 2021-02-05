@@ -1,0 +1,84 @@
+# editor backups
+*~
+*.bak
+*.swp
+
+# ignore core dumps
+core.*
+
+# CMake files for in-tree builds
+CMakeCache.txt
+CMakeFiles/
+CTestTestfile.cmake
+cmake_install.cmake
+
+# Ninja build files
+build.ninja
+rules.ninja
+.ninja_deps
+.ninja_log
+
+# generated files
+src/version.h
+
+# binary folders
+examples/x86_64
+src/x86_64
+microBM/x86_64/
+
+# Sublime Text files
+*.sublime-workspace
+
+# Prerequisites
+*.d
+
+# Marker files for clang-format
+*.ccf
+*.cf
+*.hf
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# dependency file
+.deps
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Assembly files
+*.s
+
+# Result files of the micro benchmarks
+*.res
+
+# Python stuff
+__pycache__
+*.pyc
+
+# NFS temp files
+.nfs*

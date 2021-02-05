@@ -1,0 +1,6 @@
+This directory includes useful scripts and common Makefile sections,
+so that they do not have to be replicated in each directory that uses
+Make.
+
+If/when we decide to use a full configuration system (most likely cmake, since
+that is what LLVM uses), those may become redundant.

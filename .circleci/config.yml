@@ -1,0 +1,17 @@
+version: 2
+jobs:
+    build:
+        executor: machine
+        machine:
+            image: ubuntu-2004:202010-01
+        steps:
+            - checkout
+            - run: wget https://apt.llvm.org/llvm.sh
+            - run: chmod +x llvm.sh
+            - run: sudo ./llvm.sh 11
+            - run:
+                name: Configure CMake Runtime
+                command: cmake -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 .
+            - run:
+                name: Build Runtime
+                command: make

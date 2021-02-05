@@ -1,0 +1,21 @@
+BasedOnStyle: LLVM
+
+---
+Language: Cpp
+# Standard: LS_Cpp14
+
+AlwaysBreakTemplateDeclarations: true
+PointerAlignment: Middle
+
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortBlocksOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+BreakBeforeBraces: Custom
+BraceWrapping:
+    BeforeElse: true
+
+# Disable formatting options which may break tests.
+SortIncludes: false
+ReflowComments: false
+---
