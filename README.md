@@ -68,6 +68,7 @@ for shared-memory multi-threading.  Supported OpenMP features are
 * worksharing constructs `for` (C/C++) and `do` (Fortran);
 * scheduling types `static`, `dynamic`, `auto` ,and `guided`, along with
   the additional `monotonic` and `nonmonotonic` qualifiers;
+* the `critical` construct;
 * the `flush` construct;
 * the `task` construct, including the data-sharing clauses `shared`, `private`,
   and `firstprivate`;
