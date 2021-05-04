@@ -5,6 +5,13 @@ project(lomp)
 # General project options
 enable_testing()
 
+# By default, we want to build in Release mode
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
+endif()
+message(STATUS "Build type set to: ${CMAKE_BUILD_TYPE}")
+
+
 # Project languages
 enable_language(CXX)
 enable_language(C)
