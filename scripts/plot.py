@@ -787,7 +787,9 @@ def extractSI(s):
     """Convert a measurement with a range suffix into a suitably scaled value"""
     types = {"T": "Time", "O": "Rate", "A": "Rate", "s": "Seconds", "%": "Percentage"}
     du = s.split()
-    num = float(du[0])
+    # Preserve integers as such, so that columns like "Threads" generate an X axis "1 2 3",
+    # rather than "1.0 2.0 3.0"
+    num = float(du[0]) if "." in du[0] else int(du[0])
     units = du[1] if len(du) == 2 else " "
     if s[-1] == " ":
         units = units + " "
@@ -1028,12 +1030,13 @@ def computeStats(results, independentVariable):
 
     result = []
     # Sanity check for number of data items being summarized
-    # print "Computing stats on " + str(len(common.values()[0]))
+    # print ("Computing stats on " + str(len(common.values()[0])))
     for measurements in list(common.values()):
         resultValues = {}
         resultValues[independentVariable] = measurements[0].__dict__[
             independentVariable
         ]
+        # print ("Measurement[\""+independentVariable+"\"] : " + str(resultValues[independentVariable]))
         fieldnames = list(measurements[0].__dict__.keys())
         fieldnames.remove(independentVariable)
         for stat in fieldnames:
@@ -1043,7 +1046,7 @@ def computeStats(results, independentVariable):
         result.append(
             measurement(list(resultValues.keys()), list(resultValues.values()))
         )
-
+        # print ("Result: " + str(result))
     return result
 
 
