@@ -265,9 +265,9 @@ void measureSharing(lomp::statistic * stats, Operation op, bool modified) {
   fprintf(stderr, "\n");
 }
 
-// Measure the half round-trip time between different threads.
+// Measure the half round-trip time between a specified threads and all others.
 template <class ChannelClass>
-void measureRoundtrip(lomp::statistic * stats) {
+void measureRoundtripFrom(lomp::statistic * stats, int source) {
   int nThreads = omp_get_max_threads();
   ChannelClass chan;
   int const innerReps = 20;
@@ -275,10 +275,13 @@ void measureRoundtrip(lomp::statistic * stats) {
 #pragma omp parallel
   {
     int me = omp_get_thread_num();
-    for (int placement = 1; placement < nThreads; placement++) {
-      if (me == 0) {
+    for (int other = 0; other < nThreads; other++) {
+      if (other == source)
+        continue;
+
+      if (me == source) {
         for (int i = 0; i < NumSamples; i++) {
-          lomp::BlockTimer bt(&stats[placement]);
+          lomp::BlockTimer bt(&stats[other]);
           // Do innerReps ping pongs
           for (int i = 0; i < innerReps; i++)
             chan.release();
@@ -286,7 +289,7 @@ void measureRoundtrip(lomp::statistic * stats) {
         }
         fprintf(stderr, ".");
       }
-      else if (me == placement) {
+      else if (me == other) {
         for (int i = 0; i < NumSamples; i++) {
           for (int i = 0; i < innerReps; i++)
             chan.wait();
@@ -297,8 +300,7 @@ void measureRoundtrip(lomp::statistic * stats) {
   }
   for (int i = 0; i < nThreads; i++)
     stats[i].scaleDown(
-        2 *
-        innerReps); /* Ten ops but they were ping-pong, and we want half ping pong */
+        2 * innerReps); /* We want half ping pong, hence we multiply by 2 */
 
   fprintf(stderr, "\n");
 }
@@ -323,6 +325,8 @@ static syncOnlyChannel * allocatePageOfChannels() {
  * Investigate the difference in half-roundTrip time as we use each different cache-line in a page.
  * We expect that to sample evey possible tag-directory, so we hope to find some lines whose TS
  * is local to either of the two threads communicating, which should be faster.
+ * (That description assumes a shared LLC, in a machine with a partioned LLC, we expect no difference
+ * here).
  */
 void measureLinePlacement(lomp::statistic * stats, int otherThread) {
   // We leak this memory, but it really doesn't matter, this is only a test code and will exit
@@ -541,8 +545,8 @@ static void printHelp() {
       "M            -- Memory:  read/write latencies\n"
       "N            -- Number of writes timing; time/write if we do N "
       "consecutive writes\n"
-      "R[aw]        -- Round trip time: half the round trip time using atomic "
-      "or write\n"
+      "R[aw] [n]    -- Round trip time: half the round trip time using atomic "
+      "or write from thread n (zero if unspecified)\n"
       "P[rwa][mu]   -- Placement: op is read/write/atomic depending on second "
       "letter,\n"
       "                line state [modified/unmodified] is determined by the "
@@ -551,6 +555,7 @@ static void printHelp() {
       "letter,\n"
       "                line state [modified/unmodified] is determined by the "
       "third\n"
+      "T[aw]           round-trip between every pair of threads\n"
       "V            -- Visibility\n"
       "\n"
       "In memory we're looking at the time to perform read/write to a line not "
@@ -599,7 +604,7 @@ int main(int argc, char ** argv) {
     return 1;
   }
 
-  if (argc != 2) {
+  if (argc < 2) {
     printf("Need an argument\n");
     printHelp();
     return 1;
@@ -754,21 +759,62 @@ int main(int argc, char ** argv) {
 
   case 'R': { // Like placement, but we measure half the round-trip time
     char const * storeName;
+    int from = (argc > 2) ? atoi(argv[2]) : 0;
+
+    IdxOffset = 0;
+    numStats = nThreads;
     if (argv[1][1] == 'a') {
-      measureRoundtrip<atomicSyncOnlyChannel>(stats);
+      measureRoundtripFrom<atomicSyncOnlyChannel>(stats, from);
       storeName = "Atomic";
     }
     else {
-      measureRoundtrip<syncOnlyChannel>(stats);
+      measureRoundtripFrom<syncOnlyChannel>(stats, from);
       storeName = "Write";
     }
     printf("Half Round Trip\n"
-           "%s, %s, %s\n"
+           "From(%d), %s, %s, %s\n"
            "# %s\n"
            "Position,  Samples,       Min,      Mean,       Max,        SD\n",
+           from, targetName.c_str(), storeName,
+           USE_YIELD ? "Yield" : "No Yield", getDateTime().c_str());
+  } break;
+
+  case 'T': { // Runs the roundtrip between all possilbe pairs.
+    bool useAtomic = argv[1][1] == 'a';
+    char const * storeName = useAtomic ? "Atomic" : "Write";
+    double tickInterval = lomp::tsc_tick_count::getTickTime();
+
+    printf("Half Round Trip\n"
+           "%s, %s, %s\n"
+           "# %s\n"
+           "Between,  Samples,       Min,      Mean,       Max,        SD\n",
            targetName.c_str(), storeName, USE_YIELD ? "Yield" : "No Yield",
            getDateTime().c_str());
-  } break;
+
+    // Run one set of measurements and ignore them to warm things up
+    if (useAtomic)
+      measureRoundtripFrom<atomicSyncOnlyChannel>(stats, 0);
+    else
+      measureRoundtripFrom<syncOnlyChannel>(stats, 0);
+    for (int i = 0; i < nThreads; i++)
+      stats[i].reset();
+
+    for (int from = 0; from < nThreads; from++) {
+      if (useAtomic)
+        measureRoundtripFrom<atomicSyncOnlyChannel>(stats, from);
+      else
+        measureRoundtripFrom<syncOnlyChannel>(stats, from);
+      // Convert to times
+      for (int i = 0; i < nThreads; i++)
+        stats[i].scale(tickInterval);
+
+      for (int i = 0; i < nThreads; i++) {
+        printf("[%d-%d], %s\n", from, i, stats[i].format('s').c_str());
+        stats[i].reset();
+      }
+    }
+    return 0;
+  }
 
   case 'V':
     measureVisibility(stats);

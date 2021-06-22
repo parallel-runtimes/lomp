@@ -48,7 +48,7 @@ static std::string CPUBrandName() {
   char * buffer = (char *)&intBuffer[0];
 
   x86_cpuid(0x00000000, 0, &cpuinfo);
-  int * bufferAlias = (int *)&buffer[0];
+
   intBuffer[0] = cpuinfo.ebx;
   intBuffer[1] = cpuinfo.edx;
   intBuffer[2] = cpuinfo.ecx;

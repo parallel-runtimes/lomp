@@ -176,12 +176,10 @@ int32_t __kmpc_in_parallel(ident_t *) {
   return omp_in_parallel();
 }
 
-int32_t __kmpc_reduce_nowait(ident_t * id, int32_t, // where and gtid
-                             int32_t /* num_vars */,
-                             size_t /* red_size */ ,
-                             void * /* red_data*/,
-                             void (* /* red_func*/)(void * lhs_data, void * rhs_data),
-                             void * lck) {
+int32_t __kmpc_reduce_nowait(
+    ident_t * id, int32_t, // where and gtid
+    int32_t /* num_vars */, size_t /* red_size */, void * /* red_data*/,
+    void (*/* red_func*/)(void * lhs_data, void * rhs_data), void * lck) {
   // N.B. We ought to pass in more arguments and stash them, but for now
   // we're not supporting tree reductions, so don't need to.
   return lomp::Thread::getCurrentThread()->enterReduction(id, lck);
@@ -193,11 +191,10 @@ void __kmpc_end_reduce_nowait(ident_t *, int32_t, // where and gtid
 }
 
 int32_t __kmpc_reduce(ident_t * id, int32_t, // where and gtid
-                             int32_t /* num_vars */,
-                             size_t /* red_size */ ,
-                             void * /* red_data*/,
-                             void (* /* red_func*/)(void * lhs_data, void * rhs_data),
-                             void * lck) {
+                      int32_t /* num_vars */, size_t /* red_size */,
+                      void * /* red_data*/,
+                      void (*/* red_func*/)(void * lhs_data, void * rhs_data),
+                      void * lck) {
   // N.B. We ought to pass in more arguments and stash them, but for now
   // we're not supporting tree reductions, so don't need to.
   return lomp::Thread::getCurrentThread()->enterReduction(id, lck);

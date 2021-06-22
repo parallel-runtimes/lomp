@@ -146,6 +146,13 @@ else()
   target_link_options(yield PRIVATE -fopenmp)
 endif()
 
+add_executable(variadic variadic.cc ../src/stats-timing.cc ../src/util.cc)
+if(LOMP_MICROBM_WITH_LOMP)
+  target_link_libraries(nominalFrequency omp)
+else()
+  target_link_options(nominalFrequency PRIVATE -fopenmp)
+endif()
+
 # add flags for RTM and/or cmpxchg16b
 add_mrtm_flag(locks)
 add_mcx16_flag(locks)
