@@ -465,6 +465,142 @@ def addLegend(ax, lines, impls, legendPos):
         )
 
 
+def splitXY(pos):
+    """Split out the x and y values from "[x-y]"
+    """
+    (f,b) = pos.split('-')
+    return (int(f[1:]),int(b[:-1]))
+
+def preparePlot(bmName):
+    # For "European" size paper a sqrt(2) aspect ratio is good, since that's
+    # the page ratio.
+    aspectRatio = math.sqrt(2)
+    widthInInches = 6
+    fig = plt.figure(figsize=(widthInInches * aspectRatio, widthInInches), dpi=1200)
+    plt.title(bmName)
+    return fig
+
+def getEncoding(yAxisName,timeUnit):
+    if timeUnit:
+        encoding = (yAxisName, timeUnit)
+    else:
+        encoding = {
+                "Time(ticks)": ("Time", " T",),
+                "Time": ("Time", "s"),
+                "Throughput": ("Throughput", "Op/s"),
+                "Machine Throughput": ("Machine Throughput", "Op/s"),
+                "Percent": ("Percent", "%"),
+                "Percentage": ("Percent", "%"),
+                "Efficiency (%)": ("Efficiency", "%"),
+                "Efficiency": ("Efficiency", "%"),
+                "Speedup": ("Speedup", "x"),
+        }.get(yAxisName, None)
+    return encoding
+        
+def finalisePlot(ax,bmName,yAxisName,fig,fileSuffix,timeUnit):
+    if "Normalized" in bmName:
+        from matplotlib.ticker import StrMethodFormatter
+
+        decimals = 2 if yTMdelta < 0.1 else (1 if yTMdelta < 1.0 else 0)
+        ax.yaxis.set_major_formatter(StrMethodFormatter("{x:." + str(decimals) + "f}x"))
+        encoding = None
+    else:
+        encoding = getEncoding(yAxisName, timeUnit)
+
+    if encoding:
+        # print ("Encoding:", encoding)
+        from matplotlib.ticker import EngFormatter
+
+        ax.yaxis.set_major_formatter(EngFormatter(unit=encoding[1], sep=""))
+        yAxisName = encoding[0]
+
+    # print ("yAxisName:", yAxisName)
+    ax.set_ylabel(yAxisName)
+
+    fname = cleanFilename(bmName) + fileSuffix
+    # Explicitly save the file to the output directory
+    print("Saving " + os.path.join(outputDir, fname + ".png"))
+    fig.savefig(os.path.join(outputDir, fname + ".png"), transparent=True)
+    # Can we save eps or pdf? That's what we need for publication, and ... it just works!
+    # print("Saving " + os.path.join(outputDir, fname + ".pdf"))
+    # fig.savefig(os.path.join(outputDir, fname + ".pdf"), transparent=True)
+    # If we want eps re-enable the lines below
+    #    print("Saving " + os.path.join(outputDir, fname + ".eps"))
+    #    fig.savefig(os.path.join(outputDir, fname + ".eps"), transparent=True)
+    plt.close()
+    fname = fname + ".png"
+    # But reference it assuming that the HTML and plot are in the same directory
+    outputHtml("<a href=" + fname + ">")
+
+    width = 1000
+    aspectRatio = math.sqrt(2)
+    height = int(width / aspectRatio)
+    outputHtml(
+        "<img src="
+        + fname
+        + " alt="
+        + fname
+        + " width="
+        + str(width)
+        + " height="
+        + str(height)
+        + "/img>"
+    )
+    outputHtml("</a>")
+
+
+def extractGrid(npl,sizeValues):
+    """Extract the grid positions from 2D data where the key is [from-to]"""
+    xposns = []
+    yposns = []
+    data   = []
+    curY   = -1
+    rowData= None
+    # print ("npl: ",npl)
+    # print ("sizeValues: ",sizeValues)
+    
+    for (pos,value) in zip(npl,sizeValues['']):
+        (ypos,xpos) = splitXY(pos)
+        yposns.append(ypos)
+        xposns.append(xpos)
+        if ypos != curY:
+            curY = ypos
+            if rowData:
+                data.append(rowData)
+            rowData = []
+        rowData.append(value)
+        
+    if len(rowData):
+        data.append(rowData)
+    return (xposns,yposns,data)
+    
+def generateHeatmap(bmName,yAxisName,npl,sizeValues,fileSuffix,timeUnit):
+    # We're hoping this is the tag for a heatmap
+    # print("data: ",data)
+    fig = preparePlot(bmName)
+    ax = fig.axes[0]
+    impls = sorted(list(sizeValues.keys()), key=cmp_to_key(compareFn))
+    if len(impls) != 1:
+        print ("***Cannot have more than one implementation in a heatmap")
+        return
+
+    (xposns,yposns,data) = extractGrid(npl,sizeValues)
+     
+    # Do most of the work!
+    im = ax.imshow(data,cmap=plt.get_cmap("plasma"))
+    ax.set_xlabel("To")
+    # We want to show all ticks...
+    ax.set_xticks(xposns)
+    ax.set_yticks(yposns)
+    # ... and label them with the respective list entries
+    ax.set_xticklabels([str(xp) for xp in xposns])
+    ax.set_yticklabels([str(yp) for yp in yposns])
+    ax.set_ylabel("From")
+
+    # Add a colorbar
+    cBar = plt.colorbar(im)
+    finalisePlot(cBar.ax,bmName+"_map", "",fig,fileSuffix,"s")
+
 def generatePlot(
     bmName,
     yAxisName,
@@ -486,22 +622,26 @@ def generatePlot(
     The maximum y axis value can be set
     Grid lines can be plotted across the graph
     Error bars can be plotted
+    If the axis values are strings, then we assume that they represent a pair of the form
+    "[i-j]" where i and j are integers as a co-ordinate in x,y space, which we decode
+    and plot a heat map.
     """
-
+    if isinstance(npl[0], str):
+        generateHeatmap(bmName,yAxisName,npl,sizeValues,fileSuffix,timeUnit)
+        return
+    
     print("Plot: '" + bmName + "'")
-
-    # For "European" size paper a sqrt(2) aspect ratio is good, since that's
-    # the page ratio.
-    aspectRatio = math.sqrt(2)
-    widthInInches = 6
-    fig = plt.figure(figsize=(widthInInches * aspectRatio, widthInInches), dpi=1200)
-    plt.title(bmName)
-    ax = fig.add_subplot(1, 1, 1)
+    fig = preparePlot(bmName)
+    ax = fig.axes[0]
     impls = sorted(list(sizeValues.keys()), key=cmp_to_key(compareFn))
     # print("xmMin = ",xMin)
     setupXAxis(ax, npl[0] if xMin == None else xMin, npl[-1], xLabel, logarithmic)
 
-    # print ("npl: " + str(npl) + " sizeValues " + str(sizeValues))
+    if False:
+        print ("npl: ", npl)
+        print ("sizeValues: ", sizeValues)
+        print ("impls: ",impls)
+    
     lines = []
 
     # Choose a marker size based on the number of points we're plotting in all
@@ -515,15 +655,15 @@ def generatePlot(
             # print "impl : " +impl
             # print "npl : " + str(npl) + " dataValues: " + str(dataValues)
             nplToUse = npl[: len(dataValues)]
-        # print "impl: " + str(impl) + " " + str(dataValues)
+        # print ("impl: ", str(impl), " " + str(dataValues))
         (line,) = ax.plot(nplToUse, dataValues)
         lines.append(line)
         plt.setp(
             line,
             marker=implementationStyles[impl][0],
-            markerSize=markerSize,
+            markersize=markerSize,
             color=implementationStyles[impl][1],
-            linestyle=implementationStyles[impl][2],
+            linestyle=implementationStyles[impl][2]
         )
 
         if deviations:
@@ -532,6 +672,7 @@ def generatePlot(
             for x, v, e in zip(nplToUse, dataValues, deviations[impl]):
                 if v is None:
                     continue
+                print ("x:",x,"v:",v)
                 ax.errorbar(x, v, yerr=e, color=implementationStyles[impl][1])
     addLegend(ax, lines, impls, legendPos)
     # Round up the yMax value so that it is at the granularity of the y axis tick marks
@@ -563,67 +704,8 @@ def generatePlot(
     else:
         ax.grid(True)
 
-    if "Normalized" in bmName:
-        from matplotlib.ticker import StrMethodFormatter
-
-        decimals = 2 if yTMdelta < 0.1 else (1 if yTMdelta < 1.0 else 0)
-        ax.yaxis.set_major_formatter(StrMethodFormatter("{x:." + str(decimals) + "f}x"))
-        encoding = None
-    else:
-        if timeUnit:
-            encoding = (yAxisName, timeUnit)
-        else:
-            encoding = {
-                "Time(ticks)": ("Time", " T",),
-                "Time(seconds)": ("Time", "s"),
-                "Throughput": ("Throughput", "Op/s"),
-                "Machine Throughput": ("Machine Throughput", "Op/s"),
-                "Percent": ("Percent", "%"),
-                "Percentage": ("Percent", "%"),
-                "Efficiency (%)": ("Efficiency", "%"),
-                "Efficiency": ("Efficiency", "%"),
-                "Speedup": ("Speedup", "x"),
-            }.get(yAxisName, None)
-    if encoding:
-        # print ("Encoding:", encoding)
-        from matplotlib.ticker import EngFormatter
-
-        ax.yaxis.set_major_formatter(EngFormatter(unit=encoding[1], sep=""))
-        yAxisName = encoding[0]
-    # print ("yAxisName:", yAxisName)
-    ax.set_ylabel(yAxisName)
-
-    fname = cleanFilename(bmName) + fileSuffix
-    # Explicitly save the file to the output directory
-    print("Saving " + os.path.join(outputDir, fname + ".png"))
-    fig.savefig(os.path.join(outputDir, fname + ".png"), transparent=True)
-    # Can we save eps or pdf? That's what we need for publication, and ... it just works!
-    # print("Saving " + os.path.join(outputDir, fname + ".pdf"))
-    # fig.savefig(os.path.join(outputDir, fname + ".pdf"), transparent=True)
-    # If we want eps re-enable the lines below
-    #    print("Saving " + os.path.join(outputDir, fname + ".eps"))
-    #    fig.savefig(os.path.join(outputDir, fname + ".eps"), transparent=True)
-    plt.close()
-    fname = fname + ".png"
-    # But reference it assuming that the HTML and plot are in the same directory
-    outputHtml("<a href=" + fname + ">")
-
-    width = 1000
-    height = int(width / aspectRatio)
-    outputHtml(
-        "<img src="
-        + fname
-        + " alt="
-        + fname
-        + " width="
-        + str(width)
-        + " height="
-        + str(height)
-        + "/img>"
-    )
-    outputHtml("</a>")
-
-
+    finalisePlot(ax, bmName,yAxisName,fig,fileSuffix,timeUnit)
+    
 def generateBarChart(bmName, yAxisName, bins, fileSuffix="", xLabel=""):
     """Generate a single bar chart
     """
@@ -785,6 +867,11 @@ def plotFit(title, threadCounts, bestTimes, coeffs, independentVar, unit):
 # Code to read the SI formatted data.
 def extractSI(s):
     """Convert a measurement with a range suffix into a suitably scaled value"""
+
+    # If this is representing a range, just return it as is.
+    if "[" in s:
+        return (s,None)
+
     types = {"T": "Time", "O": "Rate", "A": "Rate", "s": "Seconds", "%": "Percentage"}
     du = s.split()
     # Preserve integers as such, so that columns like "Threads" generate an X axis "1 2 3",
@@ -1184,7 +1271,7 @@ def readFile(fname, desiredFields, minX, maxX):
                     print("*** " + line)
                     continue
                 # print "maxX:", maxX, "Values[0] ", values[0]
-                if values[0] > maxX or values[0] < minX:
+                if units[0] and (values[0] > maxX or values[0] < minX):
                     # print ("Ignoring ", values[0], " since it's out of range (",minX,":",maxX,")")
                     continue
                 values = [values[0]] + [x / scaleFactor for x in values[1:]]
@@ -1571,7 +1658,7 @@ def generateReport():
         # print(stat + ": Units " + measurement.units[stat])
         (unit, timeUnit) = {
             "Time": ("Time(ticks)", "T"),
-            "Seconds": ("Time(seconds)", "s"),
+            "Seconds": ("Time", "s"),
             "Count": ("Count", ""),
             "Rate": ("Ops/T", "T"),
             "Percentage": (stat, "%"),

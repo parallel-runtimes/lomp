@@ -38,7 +38,7 @@ public:
   // This one doesn't check that the previous value has been consumed.
   // In general, that is unsafe and incorrect, but inside a barrier
   // we know that the thread must have seen the previous value because
-  // it checkd in again before we got here, so it's OK there.
+  // it checked in again before we got here, so it's OK there.
   void unsafeRelease() {
     if (doAtomic) {
       go = !go;

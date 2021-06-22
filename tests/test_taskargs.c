@@ -24,10 +24,10 @@ int main(void) {
 #pragma omp task firstprivate(tpvar, tpvar2)
       {
         int me = omp_get_thread_num();
-        
-        fprintf(stderr,"In task in thread %d\n", me);
+
+        fprintf(stderr, "In task in thread %d\n", me);
         fflush(stderr);
-        fprintf(stderr,"%d: &tpvar = %p, &tpvar2 = %p\n", me, &tpvar, &tpvar2);
+        fprintf(stderr, "%d: &tpvar = %p, &tpvar2 = %p\n", me, &tpvar, &tpvar2);
         fflush(stderr);
         fprintf(stderr,
                 "%d: tpvar = %d (should be 42), tpvar2 = %d "

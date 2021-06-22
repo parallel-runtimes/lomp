@@ -86,8 +86,7 @@ static double measureTSCtick() {
   return tickTime;
 }
 
-
-#if(LOMP_TARGET_ARCH_X86_64)
+#if (LOMP_TARGET_ARCH_X86_64)
 [[noreturn]] static void fatalError(char const * Format, ...) {
   fflush(stdout);
   va_list VarArgs;
@@ -143,20 +142,21 @@ static bool haveInvariantTSC() {
   return (cpuinfo.edx & (1 << 8)) != 0;
 }
 
-
 static std::string CPUModelName() {
   cpuid_t cpuinfo;
   auto brand = CPUBrandName();
   int ids;
-  
+
   if (brand == "GenuineIntel") {
     // On Intel this gives the number of extra fields to read.
     x86_cpuid(0x80000000, 0, &cpuinfo);
     ids = cpuinfo.eax ^ 0x80000000;
-  } else if (brand == "AuthenticAMD") {
+  }
+  else if (brand == "AuthenticAMD") {
     // Whereas AMD always support exactly three extra fields.
     ids = 3;
-  } else {
+  }
+  else {
     fatalError("Unknown brand: %s", brand.c_str());
   }
 
@@ -198,7 +198,7 @@ static bool extractLeaf15H(double * time) {
   // Check whether the leaf even exists
   x86_cpuid(0x0, 0, &cpuinfo);
   if (cpuinfo.eax < 0x15) {
-    printf ("   cpuid leaf 15H is not supported\n");
+    printf("   cpuid leaf 15H is not supported\n");
     return false;
   }
 
@@ -226,7 +226,7 @@ static bool readHWTickTimeFromName(double * time) {
   if (modelName.find("Apple") != std::string::npos) {
     return false;
   }
-  
+
   char const * model = modelName.c_str();
   auto end = model + strlen(model) - 3;
   uint64_t multiplier;
@@ -343,8 +343,7 @@ std::string formatSI(double interval, int width, char unit) {
                 {1.e-27, 'Y'}};
 
   if (interval == 0.0) {
-    os << std::setw(width - 3) << std::right << "0.00" << std::setw(3)
-       << unit;
+    os << std::setw(width - 3) << std::right << "0.00" << std::setw(3) << unit;
     return os.str();
   }
 
@@ -373,20 +372,22 @@ std::string formatSI(double interval, int width, char unit) {
 int main(int, char **) {
 #if (LOMP_TARGET_ARCH_AARCH64)
   double res = readHWTickTime();
-  
+
   printf("AArch64 processor: \n"
-          "   From high resolution timer frequency (cntfrq_el0) "
+         "   From high resolution timer frequency (cntfrq_el0) "
          "%sz => %s\n",
-         formatSI(1./res,9,'H').c_str(), formatSI(res,9,'s').c_str());
+         formatSI(1. / res, 9, 'H').c_str(), formatSI(res, 9, 's').c_str());
 #elif (LOMP_TARGET_ARCH_X86_64)
   std::string brandName = CPUBrandName();
   std::string modelName = CPUModelName();
   bool invariant = haveInvariantTSC();
 
-  printf("x86_64 processor:\n   Brand: %s\n   Model: %s\n", brandName.c_str(), modelName.c_str());
+  printf("x86_64 processor:\n   Brand: %s\n   Model: %s\n", brandName.c_str(),
+         modelName.c_str());
   printf("   Invariant TSC: %s\n", invariant ? "True" : "False");
   if (!invariant) {
-    printf ("*** Without invariant TSC rdtsc is not a useful timer for wall clock time.\n");
+    printf("*** Without invariant TSC rdtsc is not a useful timer for wall "
+           "clock time.\n");
     return 1;
   }
   char const * source = "Unknown";
@@ -394,25 +395,29 @@ int main(int, char **) {
   // Try to get it from Intel's leaf15H
   if (extractLeaf15H(&res)) {
     source = "leaf 15H";
-  } else if (readHWTickTimeFromName(&res)) {
+  }
+  else if (readHWTickTimeFromName(&res)) {
     source = "model name string";
-  } else {
-      res = measureTSCtick();
-      source = "measurement";
+  }
+  else {
+    res = measureTSCtick();
+    source = "measurement";
   }
 
-  printf ("   From %s frequency %sz => %s\n",
-          source,
-          formatSI(1./res,9,'H').c_str(), formatSI(res,9,'s').c_str());
+  printf("   From %s frequency %sz => %s\n", source,
+         formatSI(1. / res, 9, 'H').c_str(), formatSI(res, 9, 's').c_str());
 #endif
   // Check it...
   double measured = measureTSCtick();
-  printf ("\nSanity check against std::chrono::steady_clock gives frequency %sz => %s\n",
-          formatSI(1./measured,9,'H').c_str(), formatSI(measured,9,'s').c_str());
+  printf("\nSanity check against std::chrono::steady_clock gives frequency %sz "
+         "=> %s\n",
+         formatSI(1. / measured, 9, 'H').c_str(),
+         formatSI(measured, 9, 's').c_str());
   uint64_t minTicks = measureClockGranularity();
-  res = res*minTicks;
-  printf ("Measured granularity = %llu tick%s => %sz, %s\n",
-          (unsigned long long) minTicks, minTicks != 1 ? "s": "", formatSI(1./res,9,'H').c_str(), formatSI(res,9,'s').c_str());
+  res = res * minTicks;
+  printf("Measured granularity = %llu tick%s => %sz, %s\n",
+         (unsigned long long)minTicks, minTicks != 1 ? "s" : "",
+         formatSI(1. / res, 9, 'H').c_str(), formatSI(res, 9, 's').c_str());
 
   return 0;
 }
