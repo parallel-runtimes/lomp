@@ -7,10 +7,10 @@ Programming Interface](https://www.openmp.org/) for CPUs (i.e., it has no
 support for offload to target devices and is also missing many
 CPU-only features).
 
-LOMP was written to demonstrate the design principals outlined in the book
+LOMP was written to demonstrate the design principles outlined in the book
 [High-Performance Parallel Runtimes](https://www.degruyter.com/view/title/565255).
 
-The library uses the same binary interface as clang/LLVM\*, and this is
+The library uses the same binary interface as clang/LLVM\*, and thus is
 compatible with several compilers that use that interface.  Unless you use a
 feature that LOMP does not currently support, LOMP can serve as a drop-in
 replacement for the native OpenMP runtime library of a compatible
@@ -19,7 +19,7 @@ compiler without requiring re-compilation of your application.
 The runtime is mostly written in C++14, though with some features of C++17, and
 can be compiled for a variety of different architectures.  There are **no**
 assembler files in the runtime, and the use of inline assembly is restricted to
-a few features (such as reading the high resolution clock).  For architectures
+a few features (such as reading the high-resolution clock).  For architectures
 that do not have a code path to access the high-resolution clock via inline
 assembly, we rely on C++ features to measure time.  Atomic operations are all
 accessed though `std::atomic`.
@@ -28,16 +28,16 @@ As well as the source for the runtime there are also a few micro-benchmarks and
 some (extremely minimal) sanity tests.
 
 As its name suggest, the LOMP library is significantly smaller than the
-production LLVM OpenMP runtime library.  At the time of this initial check-in,
+production LLVM OpenMP runtime library.  At the time of the initial check-in,
 the [cloc](https://github.com/AlDanial/cloc) utility in the source directory
 shows under 6,000 lines of C++ code (and no assembly code).  For comparison,
 the production [LLVM OpenMP runtime](https://github.com/llvm/llvm-project/tree/main/openmp)
 has around 63,500 lines of C/C++ code and 1400 lines of assembly code in the
 CPU part of the library.  Of course, this is an unfair comparison, since LOMP
-is missing many features which are supported by the production runtime,
-however it does make the point that if you want somewhere to
+is missing many features which are supported by the production runtime.
+However, it does make the point that if you want somewhere to
 experiment, or an environment in which to set a student project, LOMP
-may be an easier codebase on which to work!
+may be an easier codebase to work with!
 
 
 ## Supported Target Platforms
