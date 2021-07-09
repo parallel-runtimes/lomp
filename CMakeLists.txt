@@ -5,6 +5,13 @@ project(lomp)
 # General project options
 enable_testing()
 
+# By default, we want to build in Release mode
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
+endif()
+message(STATUS "Build type set to: ${CMAKE_BUILD_TYPE}")
+
+
 # Project languages
 enable_language(CXX)
 enable_language(C)
@@ -25,7 +32,8 @@ option(LOMP_ICC_SUPPORT "Build additional entry points for Intel classic compile
 option(LOMP_MICROBM_WITH_LOMP "Use LOMP for micro-benchmarks" OFF)
 option(LOMP_BUILD_MICROBM "Build micro-benchmarks" ON)
 option(LOMP_BUILD_EXAMPLES "Build example programs" ON)
-
+# Assume aarch64 v8.1a architecture by default.
+SET(LOMP_ARM64_ARCHITECTURE "armv8.1a" CACHE STRING "Detailed aarch64 architecture passed to -march=")
 include(CheckCXXCompilerFlag)
 
 # look for Git
@@ -51,6 +59,12 @@ message(STATUS "Target system: ${LOMP_TARGET_OS}")
 # Detect the machine architecture
 execute_process(COMMAND arch COMMAND tr -d '\n' OUTPUT_VARIABLE LOMP_TARGET_ARCH)
 message(STATUS "Architecture: ${LOMP_TARGET_ARCH}")
+
+if (${LOMP_TARGET_ARCH} STREQUAL "aarch64")
+   add_compile_options(-march=${LOMP_ARM64_ARCHITECTURE})
+   message("-- LOMP_ARM64_ARCHITECTURE=${LOMP_ARM64_ARCHITECTURE} => -march=${LOMP_ARM64_ARCHITECTURE}")
+   add_compile_definitions(LOMP_ARM64_ARCHITECTURE=${LOMP_ARM64_ARCHITECTURE})   
+endif()
 
 # find all LOMP source files
 file(GLOB_RECURSE LOMP_SOURCE_FILES ${PROJECT_SOURCE_DIR}/*.cc

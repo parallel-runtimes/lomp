@@ -189,6 +189,8 @@ Here are the steps needed:
   * with GNU Make: `make test`
   * with Ninja: `ninja test`
 
+The default build configuration is "Release" mode, which enables compiler optimizations.  Please see below for how to change this default.
+
 To use LOMP with an existing code, once you have built the library, you should
 be able to use `LD_LIBRARY_PATH` on Linux (or `DYLD_LIBRARY_PATH` on MacOS) to
 place its directory before the system one where the production OpenMP library
@@ -225,7 +227,7 @@ that, remember to reset `LD_LIBRARY_PATH`.
 
 ### CMake Configuration Options
 
-The following options can be set using the cmake command line interface:
+The following options can be set using the `cmake` command line interface:
 
 * `-G Ninja`: Sets the build system to Ninja (the default is GNU Make)
 * `-DCMAKE_C_COMPILER=xyz`: Set the C compiler to be `xyz`, the GNU Compiler
