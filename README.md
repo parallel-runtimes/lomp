@@ -156,10 +156,11 @@ Here are the steps needed:
   * via SSH: `git clone git@github.com:parallel-runtimes/lomp.git`
   * via HTTPS: `git clone https://github.com/parallel-runtimes/lomp.git`
 * Create a build directory for an out-of-tree build: `mkdir lomp_build`
-* Go to that new directory and run cmake there (before doing this, check the [CMake Configuration Options](#cmake-configuration-options) section below;
+* Go to that new directory and run `cmake` there (before doing this, check
+  the [CMake Configuration Options](#cmake-configuration-options) section below;
   you will probably need to add some options to set the appropriate compiler).
-  `cd lomp_build`
-  `cmake ../lomp`
+  * `cd lomp_build`
+  * `cmake ../lomp`
 * Compile LOMP (depending which build system you asked cmake to create
   build files for)
   * with GNU Make: `make`
