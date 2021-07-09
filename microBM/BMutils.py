@@ -98,7 +98,7 @@ def outputName(test):
 
 def execute(cmd, output = None):
     if output:
-        output = "> " + output
+        output = " > " + output
         print("Running " + cmd + output)
     else:
         output = ""
@@ -123,9 +123,9 @@ def computeEnv():
 
 class runDescription:
     def __init__(self, image, subOpts, extraOpts, prefix):
+        self.image = image
         self.subOptions = subOpts
         self.extraOptions = extraOpts
-        self.image = image
         self.outputNamePrefix = prefix
 
     def __str__(self):

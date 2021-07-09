@@ -20,12 +20,18 @@ runDesc = BMutils.runDescription(
         "S": ("ru", "rm", "wu", "wm", "au", "am"),
         "V": ("",),
     },
-    {},
+    # P,R,S can all take an extra argument to choose the active core, or -1 for all
+    # We express that here, but commented out, because you probably don't want to run
+    # all six P,S cases with all threads, but just pick one of them
+    {"P": ("0","-1"),
+#    "R": ("0", "-1"),
+     "R": ("-1", ),
+     "S": ("0","-1"),},
     "LS",
 )
-# Choose a subset of tests to run here.
-tests = ("P",)
 # None => all :-)
 tests = None
+# Choose a subset of tests to run here.
+tests = ("P",)
 
 BMutils.runBM(runDesc, tests)

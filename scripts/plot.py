@@ -105,7 +105,7 @@ def extractDigits(key):
     a tuple of the string without the digits, and the
     integer value of the digits. We can then use that as
     a good thing to sort on, so that we get
-    "a5" and "a15"
+    "a5" and "a15" right.
     """
     text = ""
     digits = ""
@@ -465,12 +465,6 @@ def addLegend(ax, lines, impls, legendPos):
         )
 
 
-def splitXY(pos):
-    """Split out the x and y values from "[x-y]"
-    """
-    (f,b) = pos.split('-')
-    return (int(f[1:]),int(b[:-1]))
-
 def preparePlot(bmName):
     # For "European" size paper a sqrt(2) aspect ratio is good, since that's
     # the page ratio.
@@ -480,24 +474,26 @@ def preparePlot(bmName):
     plt.title(bmName)
     return fig
 
-def getEncoding(yAxisName,timeUnit):
+
+def getEncoding(yAxisName, timeUnit):
     if timeUnit:
         encoding = (yAxisName, timeUnit)
     else:
         encoding = {
-                "Time(ticks)": ("Time", " T",),
-                "Time": ("Time", "s"),
-                "Throughput": ("Throughput", "Op/s"),
-                "Machine Throughput": ("Machine Throughput", "Op/s"),
-                "Percent": ("Percent", "%"),
-                "Percentage": ("Percent", "%"),
-                "Efficiency (%)": ("Efficiency", "%"),
-                "Efficiency": ("Efficiency", "%"),
-                "Speedup": ("Speedup", "x"),
+            "Time(ticks)": ("Time", " T",),
+            "Time": ("Time", "s"),
+            "Throughput": ("Throughput", "Op/s"),
+            "Machine Throughput": ("Machine Throughput", "Op/s"),
+            "Percent": ("Percent", "%"),
+            "Percentage": ("Percent", "%"),
+            "Efficiency (%)": ("Efficiency", "%"),
+            "Efficiency": ("Efficiency", "%"),
+            "Speedup": ("Speedup", "x"),
         }.get(yAxisName, None)
     return encoding
-        
-def finalisePlot(ax,bmName,yAxisName,fig,fileSuffix,timeUnit):
+
+
+def finalisePlot(ax, bmName, yAxisName, fig, fileSuffix, timeUnit):
     if "Normalized" in bmName:
         from matplotlib.ticker import StrMethodFormatter
 
@@ -515,7 +511,8 @@ def finalisePlot(ax,bmName,yAxisName,fig,fileSuffix,timeUnit):
         yAxisName = encoding[0]
 
     # print ("yAxisName:", yAxisName)
-    ax.set_ylabel(yAxisName)
+    if yAxisName:
+        ax.set_ylabel(yAxisName)
 
     fname = cleanFilename(bmName) + fileSuffix
     # Explicitly save the file to the output directory
@@ -549,57 +546,95 @@ def finalisePlot(ax,bmName,yAxisName,fig,fileSuffix,timeUnit):
     outputHtml("</a>")
 
 
-def extractGrid(npl,sizeValues):
-    """Extract the grid positions from 2D data where the key is [from-to]"""
-    xposns = []
-    yposns = []
-    data   = []
-    curY   = -1
-    rowData= None
-    # print ("npl: ",npl)
-    # print ("sizeValues: ",sizeValues)
-    
-    for (pos,value) in zip(npl,sizeValues['']):
-        (ypos,xpos) = splitXY(pos)
-        yposns.append(ypos)
-        xposns.append(xpos)
-        if ypos != curY:
-            curY = ypos
-            if rowData:
-                data.append(rowData)
-            rowData = []
-        rowData.append(value)
-        
-    if len(rowData):
-        data.append(rowData)
-    return (xposns,yposns,data)
-    
-def generateHeatmap(bmName,yAxisName,npl,sizeValues,fileSuffix,timeUnit):
-    # We're hoping this is the tag for a heatmap
-    # print("data: ",data)
-    fig = preparePlot(bmName)
+def selectNotNth(l, n):
+    return [v for (pos, v) in enumerate(l) if pos % n != 0]
+
+
+def labelsTicks(posns, n):
+    return (
+        posns[::n],
+        [p * n for p in range((len(posns) + n - 1) // n)],
+        selectNotNth(range(len(posns)), n),
+    )
+
+
+def generateLabelsTicks(posns):
+    """Generate a lits of strings to use as labels, given the list of labels.
+    Depending on how many entries there are we may label only every 5th or 10th entry.
+    Doing that really only makes sense if the list of labels is actually numeric with
+    constant delta between them...
+    """
+    if len(posns) <= 10:
+        return labelsTicks(posns, 1)
+    elif len(posns) <= 50:
+        return labelsTicks(posns, 5)
+    else:
+        return labelsTicks(posns, 10)
+
+
+def nonesToNans(array):
+    # Convert any "None" entries into np.NaN
+    for d in array:
+        for i in range(len(d)):
+            if d[i] == None:
+                d[i] = numpy.NaN
+
+
+def generateHeatmap(title, unit, labels, sizeValues, xAxisName, legendPos, timeUnit):
+    """Generate a heatmap
+    Each experiment becomes a line in the map.
+    We expect the experiments to have names of the form "text number", and all agree on the text.
+    The text then becomes the y-axis name, the number the value used to sort the experiments, and
+    the label associated with each one.
+    """
+    fig = preparePlot(title)
     ax = fig.axes[0]
     impls = sorted(list(sizeValues.keys()), key=cmp_to_key(compareFn))
-    if len(impls) != 1:
-        print ("***Cannot have more than one implementation in a heatmap")
-        return
+    yposns = [val for (discard, val) in [extractDigits(impl) for impl in impls]]
+    (yAxisName, discard) = extractDigits(impls[0])
+    data = [sizeValues[k] for k in impls]
+    nonesToNans(data)
 
-    (xposns,yposns,data) = extractGrid(npl,sizeValues)
-     
+    if False:
+        print(
+            "Title: ",
+            title,
+            "\nunit: ",
+            unit,
+            "\nlabels:",
+            labels,
+            "\nsizeValues: ",
+            sizeValues,
+        )
+        print("impls: ", impls)
+        print("yAxisName: ", yAxisName)
+        print("unit: ", unit)
+        print("timeUnit: ", timeUnit)
+        print("data: ", data)
+
     # Do most of the work!
-    im = ax.imshow(data,cmap=plt.get_cmap("plasma"))
-    ax.set_xlabel("To")
-    # We want to show all ticks...
-    ax.set_xticks(xposns)
-    ax.set_yticks(yposns)
+    im = ax.imshow(data, cmap=plt.get_cmap("plasma"))
+    ax.set_xlabel(xAxisName)
+    ax.set_ylabel(yAxisName)
+    # We want to show appropriate ticks
     # ... and label them with the respective list entries
-    ax.set_xticklabels([str(xp) for xp in xposns])
-    ax.set_yticklabels([str(yp) for yp in yposns])
-    ax.set_ylabel("From")
+    (labels, majorTicks, minorTicks) = generateLabelsTicks(labels)
+    # print ("labels: ", labels, "\nmajorTicks: ",majorTicks,"\nminorTicks: ",minorTicks)
+    ax.set_xticks(majorTicks)
+    ax.set_xticklabels(labels)
+    if minorTicks:
+        ax.set_xticks(minorTicks, minor=True)
+
+    (labels, majorTicks, minorTicks) = generateLabelsTicks(yposns)
+    ax.set_yticks(majorTicks)
+    ax.set_yticklabels(labels)
+    if minorTicks:
+        ax.set_yticks(minorTicks, minor=True)
 
     # Add a colorbar
     cBar = plt.colorbar(im)
-    finalisePlot(cBar.ax,bmName+"_map", "",fig,fileSuffix,"s")
+    finalisePlot(cBar.ax, title, None, fig, "_map", timeUnit)
+
 
 def generatePlot(
     bmName,
@@ -622,14 +657,7 @@ def generatePlot(
     The maximum y axis value can be set
     Grid lines can be plotted across the graph
     Error bars can be plotted
-    If the axis values are strings, then we assume that they represent a pair of the form
-    "[i-j]" where i and j are integers as a co-ordinate in x,y space, which we decode
-    and plot a heat map.
     """
-    if isinstance(npl[0], str):
-        generateHeatmap(bmName,yAxisName,npl,sizeValues,fileSuffix,timeUnit)
-        return
-    
     print("Plot: '" + bmName + "'")
     fig = preparePlot(bmName)
     ax = fig.axes[0]
@@ -638,10 +666,10 @@ def generatePlot(
     setupXAxis(ax, npl[0] if xMin == None else xMin, npl[-1], xLabel, logarithmic)
 
     if False:
-        print ("npl: ", npl)
-        print ("sizeValues: ", sizeValues)
-        print ("impls: ",impls)
-    
+        print("npl: ", npl)
+        print("sizeValues: ", sizeValues)
+        print("impls: ", impls)
+
     lines = []
 
     # Choose a marker size based on the number of points we're plotting in all
@@ -663,7 +691,7 @@ def generatePlot(
             marker=implementationStyles[impl][0],
             markersize=markerSize,
             color=implementationStyles[impl][1],
-            linestyle=implementationStyles[impl][2]
+            linestyle=implementationStyles[impl][2],
         )
 
         if deviations:
@@ -672,8 +700,9 @@ def generatePlot(
             for x, v, e in zip(nplToUse, dataValues, deviations[impl]):
                 if v is None:
                     continue
-                print ("x:",x,"v:",v)
+                # print("x:", x, "v:", v)
                 ax.errorbar(x, v, yerr=e, color=implementationStyles[impl][1])
+
     addLegend(ax, lines, impls, legendPos)
     # Round up the yMax value so that it is at the granularity of the y axis tick marks
     yTicks = ax.get_yticks()
@@ -683,7 +712,7 @@ def generatePlot(
         yMax = yTicks[-1]
     else:
         yMax = yTMdelta * math.ceil(yMax / yTMdelta)
-    print("Computed yMax: ", yMax)
+    # print("Computed yMax: ", yMax)
 
     ax.set_ylim(yMin, yMax)
     # And similarly for xMin
@@ -704,8 +733,9 @@ def generatePlot(
     else:
         ax.grid(True)
 
-    finalisePlot(ax, bmName,yAxisName,fig,fileSuffix,timeUnit)
-    
+    finalisePlot(ax, bmName, yAxisName, fig, fileSuffix, timeUnit)
+
+
 def generateBarChart(bmName, yAxisName, bins, fileSuffix="", xLabel=""):
     """Generate a single bar chart
     """
@@ -765,6 +795,8 @@ def outputHtmlTable(
     # Sort the numeric entries, then add the non-numeric keys (averages).
     rowKeys = sorted([v for v in array.keys() if not isinstance(v, str)])
     rowKeys += [v for v in array.keys() if isinstance(v, str)]
+
+    # print ("rowkeys: ",rowKeys)
     columnKeys = extractColumnKeys(array)
     # print ("columnKeys = ", columnKeys)
     if best == "Lowest":
@@ -870,7 +902,7 @@ def extractSI(s):
 
     # If this is representing a range, just return it as is.
     if "[" in s:
-        return (s,None)
+        return (s, None)
 
     types = {"T": "Time", "O": "Rate", "A": "Rate", "s": "Seconds", "%": "Percentage"}
     du = s.split()
@@ -1035,9 +1067,10 @@ def summarizeResults(results, what, discard=(), minName=None, maxName=None):
     """Extract a list of thread counts,
     The times per benchmark/thread, and standard deviations per benchmark/thread"""
     #    threadCounts = sorted (transpose(results).keys())
-    threadCounts = sorted(
-        [t for t in list(transpose(results).keys()) if t not in discard]
-    )
+    threadCounts = [t for t in list(transpose(results).keys()) if t not in discard]
+    if not isinstance(threadCounts[0], str):
+        threadCounts.sort()
+
     sds = {}
     meanValues = {}
     what_SD = "SD" if what == "Mean" else what + "_SD"
@@ -1093,6 +1126,7 @@ def selectedT1(results, what, doMin=True):
 
 
 def transformResults(threadCounts, values, function):
+    """Apply the function to all of the measurements"""
     res = {}
     for bm in list(values.keys()):
         res[bm] = []
@@ -1220,63 +1254,69 @@ def computeGoodMax(totalTimes, noerrs):
 
 
 def readFiltered(f):
-    """Read a non-blank, non-comment line
+    """Return the next non-blank, non-comment line
        N.B. readline returns a zero length line at EOF.
     """
     line = f.readline()
     while line:
         line = line.strip()
-        if len(line) != 0 and line[0] != "#":
-            return line
+        if len(line) != 0:
+            if line == "### NEW EXPERIMENT ###":
+                # print ("readFiltered: ''")
+                yield ""
+            elif line[0] != "#":
+                # print ("readFiltered: '",line,"'")
+                yield line
         line = f.readline()
+    # print ("readFiltered: '",line,"'")
     return line
 
 
-def readFile(fname, desiredFields, minX, maxX):
-    """Read data from the file.
-    First line gives the test title.
-    Second line gives the specific version being run,
-    thereafter there is data"""
+def readExperiment(getLine, desiredFields, minX, maxX):
+    """Consume a single experiment from a file.
+    That is either the whole file, or the amount up to a
+    #### NEW EXPERIMENT ###
+    line
+    """
+    try:
+        title = next(getLine)
+    except StopIteration:
+        # We're at the end of the file
+        return (None, None, None, None)
 
-    print("Reading ", fname)
-    with open(fname, "r") as f:
-        title = readFiltered(f)
-        l = readFiltered(f)
-        # print "Title: " + title
-        # print "l: " + l
+    l = next(getLine)
+    # print ("Title: " + title)
+    # print ("l: " + l)
 
-        line = readFiltered(f)
-        fieldnames = [x.strip() for x in line.strip().split(",")]
-        independentVariable = fieldnames[0]
+    line = next(getLine)
 
-        # print ("Fieldnames: " + str(fieldnames))
-        desiredFields = [independentVariable] + list(
-            set(desiredFields) & set(fieldnames)
-        )
-        selectedFields = computeSelection(fieldnames, desiredFields)
-        # print ("selectedFields: " + str(fieldnames))
+    fieldnames = [x.strip() for x in line.strip().split(",")]
+    independentVariable = fieldnames[0]
 
-        results = []
-        for line in f:
-            line = line[:-1]
-            if (not line) or line[0] == "#":
-                continue  # Ignore blank lines and comments
-            else:
-                data = line.split(",")
-                try:
-                    data = [data[i] for i in selectedFields]
-                    # We don't actually have times, but this should still be OK
-                    (values, units) = list(zip(*[extractSI(x) for x in data]))
-                except:
-                    print("*** " + line)
-                    continue
-                # print "maxX:", maxX, "Values[0] ", values[0]
-                if units[0] and (values[0] > maxX or values[0] < minX):
-                    # print ("Ignoring ", values[0], " since it's out of range (",minX,":",maxX,")")
-                    continue
-                values = [values[0]] + [x / scaleFactor for x in values[1:]]
-                stat = measurement(desiredFields, values, units)
-                results += [stat]
+    # print ("Fieldnames: " + str(fieldnames))
+    desiredFields = [independentVariable] + list(set(desiredFields) & set(fieldnames))
+    selectedFields = computeSelection(fieldnames, desiredFields)
+    # print ("selectedFields: " + str(fieldnames))
+
+    results = []
+    for line in getLine:
+        if line == "":
+            break
+        data = line.split(",")
+        try:
+            data = [data[i] for i in selectedFields]
+            # We don't actually have times, but this should still be OK
+            (values, units) = list(zip(*[extractSI(x) for x in data]))
+        except:
+            print("*** " + line)
+            continue
+        # print "maxX:", maxX, "Values[0] ", values[0]
+        if units[0] and (values[0] > maxX or values[0] < minX):
+            # print ("Ignoring ", values[0], " since it's out of range (",minX,":",maxX,")")
+            continue
+        values = [values[0]] + [x / scaleFactor for x in values[1:]]
+        stat = measurement(desiredFields, values, units)
+        results += [stat]
 
     if not any(["SD" in x for x in desiredFields]):
         results = computeStats(results, independentVariable)
@@ -1491,6 +1531,14 @@ def generateReport():
         default="best",
         help="Place the legend, by default 'best', 'below' or 'right' are out of the plot, other values as in matplotlib documentation",
     )
+    options.add_option(
+        "--heatmap",
+        action="store_true",
+        dest="heatmap",
+        default=False,
+        help="Plot a heatmap rather than a line graph",
+    )
+
     (options, args) = options.parse_args()
 
     maxX = options.maxX
@@ -1537,42 +1585,48 @@ def generateReport():
             print("Skipping " + fname + " it doesn't exist")
             continue
 
-        (thisTitle, niv, implementation, res) = readFile(
-            fname, desiredFields, minX if minX else 0, maxX
-        )
-        # print thisTitle, " ", niv, " ", implementation
-        if title == None:
-            title = thisTitle
-        elif title != thisTitle:
-            print(
-                "Files are mismatched, we were looking at "
-                + title
-                + " but "
-                + fname
-                + " is for "
-                + thisTitle
-            )
-            sys.exit(1)
-        if independentVariable == None:
-            independentVariable = niv
-        elif independentVariable != niv:
-            print(
-                "Results were driven by "
-                + independentVariable
-                + " but new results have "
-                + niv
-                + " so they are IGNORED"
-            )
-            sys.exit(1)
-            continue
-        results[implementation] = res
-        sys.stdout.flush()
+        with open(fname, "r") as f:
+            # Consume all of the  experiments in a file
+            getLine = readFiltered(f)
+            while True:
+                (thisTitle, niv, implementation, res) = readExperiment(
+                    getLine, desiredFields, minX if minX else 0, maxX
+                )
+                if thisTitle == None:
+                    break
+                # print thisTitle, " ", niv, " ", implementation
+                if title == None:
+                    title = thisTitle
+                elif title != thisTitle:
+                    print(
+                        "Files are mismatched, we were looking at "
+                        + title
+                        + " but "
+                        + fname
+                        + " is for "
+                        + thisTitle
+                    )
+                    sys.exit(1)
+                if independentVariable == None:
+                    independentVariable = niv
+                elif independentVariable != niv:
+                    print(
+                        "Results were driven by "
+                        + independentVariable
+                        + " but new results have "
+                        + niv
+                        + " so they are IGNORED"
+                    )
+                    sys.exit(1)
+                results[implementation] = res
+                sys.stdout.flush()
 
     if len(list(measurement.units.keys())) == 0:
         print("No data read")
         return
 
-    print("Read " + ",".join(list(measurement.units.keys())))
+    # print("Read " + ",".join(list(measurement.units.keys())))
+    # print("Results: ", results)
 
     if options.normalize:
         title = "Normalized " + title
@@ -1663,7 +1717,7 @@ def generateReport():
             "Rate": ("Ops/T", "T"),
             "Percentage": (stat, "%"),
         }[measurement.units[stat]]
-        print("Unit: ", measurement.units[stat], " TimeUnit: ", timeUnit)
+        # print("Unit: ", measurement.units[stat], " TimeUnit: ", timeUnit)
 
         if options.yName:
             unit = options.yName
@@ -1676,6 +1730,7 @@ def generateReport():
         if options.dofit:
             linearFit(thisTitle, threadCounts, totalTimes, independentVariable, unit)
 
+        legendPos = options.legendPos
         yMax = options.maxY
         if yMax == None:
             yMax = computeGoodMax(totalTimes, options.noerrs)
@@ -1683,144 +1738,149 @@ def generateReport():
         # if timeUnit in ("%", "Percent") and yMax <= 100.0:
         #     yMax = 100.0
 
-        if options.noerrs:
-            totalSds = None
-
-        # print("Title: '" + title + "'")
-
-        numLines = len(list(totalTimes.keys()))
-        legendPos = options.legendPos
-        generatePlot(
-            (title + " " + stat) if needStat(title, stat) else title,
-            unit,
-            threadCounts,
-            totalTimes,
-            deviations=totalSds,
-            xLabel=independentVariable,
-            yMin=0.0 if forceMinY else None,
-            yMax=yMax,
-            xMin=minX,
-            legendPos=legendPos,
-            logarithmic=logarithmicX,
-            timeUnit=timeUnit,
-        )
-
-        if options.throughput:
-            if "Exclusive" in title:
-                metric = "xt"
-            throughputFunctions = {
-                "xt": lambda x, nt: 1 / x,
-                "time": lambda x, nt: nt / x,
-                "rate": lambda x, nt: nt * x,
-            }
-            throughput = transformResults(
-                threadCounts, totalTimes, throughputFunctions[metric]
-            )
-            # It'd be nice to output the data into a table too, but this needs more work...
-            # outputHtmlTitle(title + "\nMachine Throughput " + stat)
-
-            # bestCol = outputHtmlTable(independentVariable, throughput,
-            #                       lambda x: x.formatValue(stat),
-            #                       lambda x: x.getValue(stat),
-            #                       True,  okPercent=okPercent)
-
-            # outputHtml("Best values in red, within " + str(okPercent) + "% have green background.")
-            # if (bestCol):
-            #     outputHtml(" Best : '" + bestCol + "'<br>")
-
-            # (threadCounts, totalTimes, totalSds) = summarizeResults (results, stat,
-            #                                                         discard = ("Overall Geometric Mean", "Overall Mean"),
-            #                                                         minName=minName, maxName=maxName)
-
-            generatePlot(
-                title + " Machine Throughput " + stat,
-                ("Normalized " if options.normalize else "") + "Throughput",
+        if options.heatmap:
+            generateHeatmap(
+                (title + " " + stat) if needStat(title, stat) else title,
+                unit,
                 threadCounts,
-                throughput,
+                totalTimes,
+                independentVariable,
+                legendPos,
+                timeUnit,
+            )
+        else:
+            # The normal case, in which we're generating potentially many lines.
+            generatePlot(
+                (title + " " + stat) if needStat(title, stat) else title,
+                unit,
+                threadCounts,
+                totalTimes,
+                deviations=None if options.noerrs else totalSds,
                 xLabel=independentVariable,
                 yMin=0.0 if forceMinY else None,
-                # yMax=(100.0 if unit == "%" else computeGoodMax(throughput, False)),
+                yMax=yMax,
+                xMin=minX,
                 legendPos=legendPos,
                 logarithmic=logarithmicX,
+                timeUnit=timeUnit,
             )
 
-        if options.exclusive:
-            exclusiveFunctions = {
-                "time": lambda x, nt: x / nt,
-                "rate": lambda x, nt: nt * x,
-            }
-            exclusive = transformResults(
-                threadCounts, totalTimes, exclusiveFunctions[metric]
-            )
-            generatePlot(
-                title + "Exclusive Time " + stat,
-                "Exclusive Time\nSmaller is Better",
-                threadCounts,
-                exclusive,
-                xLabel=independentVariable,
-                xMin=1,
-                yMin=0.0 if forceMinY else None,
-                yMax=(100.0 if unit == "%" else None),
-                legendPos=legendPos,
-                logarithmic=logarithmicX,
-            )
-
-        if wantSpeedups:
-            # Compute speedup and parallel efficiencies relative to the fastest one thread time or rate
-
-            (bestT1, threadCount) = selectedT1(results, stat, metric == "time")
-            speedupFunctions = {
-                "time": lambda x, nt: bestT1 / x,
-                "rate": lambda x, nt: x / bestT1,
-            }
-            efficiencyFunctions = {
-                "time": lambda x, nt: (100 * bestT1) / (x * nt),
-                "rate": lambda x, nt: (100 * x) / (bestT1 * nt),
-            }
-
-            speedups = transformResults(
-                threadCounts, totalTimes, speedupFunctions[metric]
-            )
-
-            if threadCount == 1:
-                if "Core" in independentVariable:
-                    relativeTitle = "relative to best single core"
-                else:
-                    relativeTitle = "relative to best single thread"
-            else:
-                relativeTitle = (
-                    "relative to P(" + str(threadCount) + ")" + str(threadCount)
+            if options.throughput:
+                if "Exclusive" in title:
+                    metric = "xt"
+                throughputFunctions = {
+                    "xt": lambda x, nt: 1 / x,
+                    "time": lambda x, nt: nt / x,
+                    "rate": lambda x, nt: nt * x,
+                }
+                throughput = transformResults(
+                    threadCounts, totalTimes, throughputFunctions[metric]
                 )
-            generatePlot(
-                title + " Speedup (" + relativeTitle + ")",
-                "Speedup",
-                threadCounts,
-                speedups,
-                xLabel=independentVariable,
-                xMin=1 if not logarithmicX else 0,
-                yMin=0.0 if forceMinY else None,
-                yMax=(100.0 if unit == "%" else None),
-                legendPos=legendPos,
-                logarithmic=logarithmicX,
-            )
+                # It'd be nice to output the data into a table too, but this needs more work...
+                # outputHtmlTitle(title + "\nMachine Throughput " + stat)
 
-            efficiencies = transformResults(
-                threadCounts, totalTimes, efficiencyFunctions[metric]
-            )
+                # bestCol = outputHtmlTable(independentVariable, throughput,
+                #                       lambda x: x.formatValue(stat),
+                #                       lambda x: x.getValue(stat),
+                #                       True,  okPercent=okPercent)
 
-            maxEfficiency = max([max(efficiencies[k]) for k in efficiencies.keys()])
-            generatePlot(
-                title + " Parallel Efficiency (" + relativeTitle + ")",
-                "Efficiency (%)",
-                threadCounts,
-                efficiencies,
-                xLabel=independentVariable,
-                xMin=1 if not logarithmicX else 0,
-                yMin=0.0 if forceMinY else None,
-                yMax=100.0 if (maxEfficiency <= 100.0) else None,
-                legendPos=legendPos,
-                logarithmic=logarithmicX,
-            )
+                # outputHtml("Best values in red, within " + str(okPercent) + "% have green background.")
+                # if (bestCol):
+                #     outputHtml(" Best : '" + bestCol + "'<br>")
+
+                # (threadCounts, totalTimes, totalSds) = summarizeResults (results, stat,
+                #                                                         discard = ("Overall Geometric Mean", "Overall Mean"),
+                #                                                         minName=minName, maxName=maxName)
+
+                generatePlot(
+                    title + " Machine Throughput " + stat,
+                    ("Normalized " if options.normalize else "") + "Throughput",
+                    threadCounts,
+                    throughput,
+                    xLabel=independentVariable,
+                    yMin=0.0 if forceMinY else None,
+                    # yMax=(100.0 if unit == "%" else computeGoodMax(throughput, False)),
+                    legendPos=legendPos,
+                    logarithmic=logarithmicX,
+                )
+
+            if options.exclusive:
+                exclusiveFunctions = {
+                    "time": lambda x, nt: x / nt,
+                    "rate": lambda x, nt: nt * x,
+                }
+                exclusive = transformResults(
+                    threadCounts, totalTimes, exclusiveFunctions[metric]
+                )
+                generatePlot(
+                    title + "Exclusive Time " + stat,
+                    "Exclusive Time\nSmaller is Better",
+                    threadCounts,
+                    exclusive,
+                    xLabel=independentVariable,
+                    xMin=1,
+                    yMin=0.0 if forceMinY else None,
+                    yMax=(100.0 if unit == "%" else None),
+                    legendPos=legendPos,
+                    logarithmic=logarithmicX,
+                )
+
+            if wantSpeedups:
+                # Compute speedup and parallel efficiencies relative to the fastest one thread time or rate
+
+                (bestT1, threadCount) = selectedT1(results, stat, metric == "time")
+                speedupFunctions = {
+                    "time": lambda x, nt: bestT1 / x,
+                    "rate": lambda x, nt: x / bestT1,
+                }
+                efficiencyFunctions = {
+                    "time": lambda x, nt: (100 * bestT1) / (x * nt),
+                    "rate": lambda x, nt: (100 * x) / (bestT1 * nt),
+                }
+
+                speedups = transformResults(
+                    threadCounts, totalTimes, speedupFunctions[metric]
+                )
+
+                if threadCount == 1:
+                    if "Core" in independentVariable:
+                        relativeTitle = "relative to best single core"
+                    else:
+                        relativeTitle = "relative to best single thread"
+                else:
+                    relativeTitle = (
+                        "relative to P(" + str(threadCount) + ")" + str(threadCount)
+                    )
+                generatePlot(
+                    title + " Speedup (" + relativeTitle + ")",
+                    "Speedup",
+                    threadCounts,
+                    speedups,
+                    xLabel=independentVariable,
+                    xMin=1 if not logarithmicX else 0,
+                    yMin=0.0 if forceMinY else None,
+                    yMax=(100.0 if unit == "%" else None),
+                    legendPos=legendPos,
+                    logarithmic=logarithmicX,
+                )
+
+                efficiencies = transformResults(
+                    threadCounts, totalTimes, efficiencyFunctions[metric]
+                )
+
+                maxEfficiency = max([max(efficiencies[k]) for k in efficiencies.keys()])
+                generatePlot(
+                    title + " Parallel Efficiency (" + relativeTitle + ")",
+                    "Efficiency (%)",
+                    threadCounts,
+                    efficiencies,
+                    xLabel=independentVariable,
+                    xMin=1 if not logarithmicX else 0,
+                    yMin=0.0 if forceMinY else None,
+                    yMax=100.0 if (maxEfficiency <= 100.0) else None,
+                    legendPos=legendPos,
+                    logarithmic=logarithmicX,
+                )
 
     outputHtml("</body> </html>")
     htmlFile.close()
