@@ -108,7 +108,9 @@ void flushMeasurementArray() {
       Target::FlushAddress(&arrayForMeasurement[i]);
 }
 
-#define NumSamples 10000
+// Default number of samples is 10,000, but for the multiple masurement cases
+// this may be turned down to make them run in reasonable time.
+static int NumSamples = 10000;
 void measureMemory(lomp::statistic * stat, Operation op) {
   for (int i = 0; i < NumSamples; i++) {
     // Ensure the measurement array is not in our cache
@@ -788,6 +790,7 @@ int main(int argc, char ** argv) {
 
     if (from < 0) {
       // Run all of them...
+      NumSamples = NumSamples/4;
       for (from = 0; from < nThreads; from++) {
         measureFn(stats, op, modified, from);
 
@@ -850,6 +853,7 @@ int main(int argc, char ** argv) {
     }
     if (from < 0) {
       // Run all of them...
+      NumSamples = NumSamples/4;
       for (from = 0; from < nThreads; from++) {
         measureFn(stats, from);
 
