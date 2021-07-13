@@ -53,6 +53,9 @@ def extractMachineInfo():
         # modelName = capture("sysctl -n machdep.cpu.brand_string").strip()
         return
 
+    if modelName == "":
+        modelName = cpuInfo.getCpuInfo("model name")
+
     # Linux...
     # Not as good as sysctl, since it doesn't easily distinguish SMT threads
     # and "real" CPUs.
@@ -64,13 +67,14 @@ def extractMachineInfo():
         if "Thread(s) per core:" in line:
             threadsPerCore = int(line.split(":")[1])
             break
+        if modelName == "" and "Model name:" in line:
+            modelName = line.split(":")[1].strip()
     if threadsPerCore == 0:
         # Dubious in the extreme
         threadsPerCore = {"aarch64" : 4, "x86_64" : 2}[arch]
     cores = cores//threadsPerCore
 
-    modelName = cpuInfo.getCpuInfo("model name")
-    # if we can't, then see if it's one of the machines we know about...
+    # If we can't, then see if it's one of the machines we know about...
     if modelName == "":
         # Host name to model name. Very installation dependent.
         # Fixes needed here for other environments
@@ -81,7 +85,9 @@ def extractMachineInfo():
             if hostName in k:
                 modelName = knownHostTags[k]
                 break
-            
+    if modelName == "":
+        modelName = "UNKOWN CPU"
+        
 # Functions which may be useful elsewhere
 def outputName(test):
     """Generate an output file name based on the test, hostname, date, and a sequence number"""
