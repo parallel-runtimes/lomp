@@ -87,7 +87,15 @@ typedef void (*Operation)(alignedUint32 * Array);
 #include <rawLoadsStores.h>
 
 // We assume that the L1$, which is what we're mostly interested in, is smaller than 16MiB
-CACHE_ALIGNED alignedUint32 arrayForMeasurement[measurementArraySize];
+static alignedUint32 arrayForMeasurement[measurementArraySize];
+
+static void checkCacheAligned(void *p) {
+  if ((uintptr_t(p) & (CACHELINE_SIZE - 1)) != 0) {
+    fprintf(stderr, "Array is not aligned as required\n");
+    exit(1);
+  }
+}
+
 // Read the largeArray which should displace all the useful data in the L1D$
 void flushCacheWithLoads() {
 #define largeArrayElements (64 * 1024 * 1024 / CACHELINE_SIZE)
@@ -100,21 +108,21 @@ void flushCacheWithLoads() {
 /* Choose the default, based on the target architecture */
 static bool flushWithLoads = !TARGET_HAS_CACHE_FLUSH;
 
-void flushMeasurementArray() {
+void flushMeasurementArray(alignedUint32 *array) {
   if (flushWithLoads)
     flushCacheWithLoads();
   else
     for (int i = 0; i < measurementArraySize; i++)
-      Target::FlushAddress(&arrayForMeasurement[i]);
+      Target::FlushAddress(&array[i]);
 }
 
-// Default number of samples is 10,000, but for the multiple masurement cases
+// Default number of samples is 10,000, but for the multiple measurement cases
 // this may be turned down to make them run in reasonable time.
 static int NumSamples = 10000;
 void measureMemory(lomp::statistic * stat, Operation op) {
   for (int i = 0; i < NumSamples; i++) {
     // Ensure the measurement array is not in our cache
-    flushMeasurementArray();
+    flushMeasurementArray(&arrayForMeasurement[0]);
     // Time the operation
     {
       lomp::BlockTimer bt(stat);
@@ -149,7 +157,7 @@ void measureWrites(lomp::statistic * stats) {
 
     op = writeFns[d];
     for (int i = 0; i < NumSamples; i++) {
-      flushMeasurementArray();
+      flushMeasurementArray(&arrayForMeasurement[0]);
       {
         lomp::BlockTimer bt(stat);
         op(&arrayForMeasurement[0]);
@@ -163,14 +171,30 @@ void measureWrites(lomp::statistic * stats) {
 }
 
 void measurePlacementFrom(lomp::statistic * stats, Operation op, bool modified,
-                          int from) {
+                          int from, bool allocateInT0 = true) {
   int nThreads = omp_get_max_threads();
   syncOnlyChannel activeToPassive;
   syncOnlyChannel passiveToActive;
+  alignedUint32 * arrayToMeasure;
 
+  if (allocateInT0)
+    arrayToMeasure = &arrayForMeasurement[0];
+  
 #pragma omp parallel
   {
     int me = omp_get_thread_num();
+
+    // If we're doing local allocation of the array, here's where we do it!
+    if (!allocateInT0) {
+#pragma omp barrier
+      if (me == from) {
+        arrayToMeasure = new alignedUint32[measurementArraySize];
+        // The constructor zeros it so it will have been written.
+        // Paranoically check that it is apropriately aligned
+        checkCacheAligned(&arrayToMeasure[0]);
+      }
+#pragma omp barrier
+    }
     for (int placement = 0; placement < nThreads; placement++) {
       if (placement == from)
         continue;
@@ -178,7 +202,7 @@ void measurePlacementFrom(lomp::statistic * stats, Operation op, bool modified,
       if (me == from) {
         for (int i = 0; i < NumSamples; i++) {
           // Ensure the measurement array is not in our cache
-          flushMeasurementArray();
+          flushMeasurementArray(arrayToMeasure);
           // Tell the thread we're communicating with to get it into the right state there
           activeToPassive.release();
           // And wait for it to do so.
@@ -186,7 +210,7 @@ void measurePlacementFrom(lomp::statistic * stats, Operation op, bool modified,
           {
             // Finally, time the operation
             lomp::BlockTimer bt(&stats[placement]);
-            op(&arrayForMeasurement[0]);
+            op(arrayToMeasure);
           }
         }
         fprintf(stderr, ".");
@@ -196,9 +220,9 @@ void measurePlacementFrom(lomp::statistic * stats, Operation op, bool modified,
           activeToPassive.wait();
           // Get the cache lines into the right state here.
           if (modified)
-            doStores(&arrayForMeasurement[0]);
+            doStores(arrayToMeasure);
           else
-            doLoads(&arrayForMeasurement[0]);
+            doLoads(arrayToMeasure);
           // Tell the initial thread we're ready.
           passiveToActive.release();
         }
@@ -206,7 +230,9 @@ void measurePlacementFrom(lomp::statistic * stats, Operation op, bool modified,
 #pragma omp barrier
     }
   }
-
+  if (!allocateInT0)
+    delete[] arrayToMeasure;
+  
   // The function operates on measurementArraySize lines, so we scale down the time
   // to get that for a single operation.
   for (int i = 0; i < nThreads; i++)
@@ -216,7 +242,7 @@ void measurePlacementFrom(lomp::statistic * stats, Operation op, bool modified,
 }
 
 void measureSharingFrom(lomp::statistic * stats, Operation op, bool modified,
-                        int from) {
+                        int from, bool) {
   int nThreads = omp_get_max_threads();
 
 #pragma omp parallel
@@ -240,7 +266,7 @@ void measureSharingFrom(lomp::statistic * stats, Operation op, bool modified,
         switch (whatIDo) {
         case active:
           // Ensure the measurement array is not in our cache
-          flushMeasurementArray();
+          flushMeasurementArray(&arrayForMeasurement[0]);
           break;
         default:
           break;
@@ -574,11 +600,13 @@ static void printHelp() {
       "R[aw] [n]    -- Round trip time: half the round trip time using atomic "
       "                or write from thread n (zero if unspecified)\n"
       "                If n<0 run all cases\n"
-      "P[rwa][mu] [n]  -- Placement: op is read/write/atomic depending on "
+      "P[rwa][mu][a] [n]  -- Placement: op is read/write/atomic depending on "
       "second "
       "letter,\n"
       "                line state [modified/unmodified] is determined by the "
       "third\n"
+      "                If the fourth letter is 'a' then allocate the measurement "
+      " array in the thread being used (default is to use a statically allocated array\n"
       "                If a second argument is present measurements are made "
       "from there; if it is <0 all positions are measured.\n"
 
@@ -618,12 +646,9 @@ static std::string getDateTime() {
 
 int main(int argc, char ** argv) {
   // Check that alignment is working
-  if ((uintptr_t(&arrayForMeasurement[0]) & (CACHELINE_SIZE - 1)) != 0 ||
-      ((uintptr_t(&arrayForMeasurement[1]) & (CACHELINE_SIZE - 1)) != 0)) {
-    printf("Array is not aligned as required\n");
-    return 1;
-  }
-
+  checkCacheAligned(&arrayForMeasurement[0]);
+  checkCacheAligned(&arrayForMeasurement[1]);
+  
   int nThreads = omp_get_max_threads();
   double tickInterval = lomp::tsc_tick_count::getTickTime();
 
@@ -671,6 +696,8 @@ int main(int argc, char ** argv) {
 
   // Ensure that the pages which hold the measurement array have been allocated and touched
   // before we start any measurements.
+  // (Not actually necessary since the constructor will touch each element
+  // to zero it, but it doesn't hurt to be completely explicit!)
   doStores(&arrayForMeasurement[0]);
 
   lomp::statistic threadStats[MAX_THREADS];
@@ -747,6 +774,17 @@ int main(int argc, char ** argv) {
 
   case 'P':
   case 'S': {
+    char const * ExperimentName;
+    void (*measureFn)(lomp::statistic *, Operation, bool, int, bool);
+    if (argv[1][0] == 'P') {
+      ExperimentName = "Placement";
+      measureFn = measurePlacementFrom;
+    }
+    else {
+      ExperimentName = "Sharing";
+      measureFn = measureSharingFrom;
+    }
+
     Operation op;
     switch (argv[1][1]) {
     case 'r':
@@ -776,23 +814,20 @@ int main(int argc, char ** argv) {
       printHelp();
       return 1;
     }
+    bool allocateInT0 = true;
+    
+    if (measureFn == measurePlacementFrom && strlen(argv[1]) >= 4) {
+      if (argv[1][3] == 'a') {
+        allocateInT0 = false;
+      }
+    }
     int from = argc > 2 ? atoi(argv[2]) : 0;
-    char const * ExperimentName;
-    void (*measureFn)(lomp::statistic *, Operation, bool, int);
-    if (argv[1][0] == 'P') {
-      ExperimentName = "Placement";
-      measureFn = measurePlacementFrom;
-    }
-    else {
-      ExperimentName = "Sharing";
-      measureFn = measureSharingFrom;
-    }
 
     if (from < 0) {
       // Run all of them...
       NumSamples = NumSamples/4;
       for (from = 0; from < nThreads; from++) {
-        measureFn(stats, op, modified, from);
+        measureFn(stats, op, modified, from, allocateInT0);
 
         // Convert to times
         for (int i = 0; i < nThreads; i++)
@@ -802,14 +837,15 @@ int main(int argc, char ** argv) {
           printf("### NEW EXPERIMENT ###\n");
 
         printf("%s\n"
-               "%s, %s, %s, Active %d\n"
+               "%s, %s, %s, %s, Active %d\n"
                "# %s\n"
                "%s,  Samples,       Min,      Mean,       Max,        SD\n",
                ExperimentName, targetName.c_str(),
-               op == doLoads ? "Load"
-                             : (op == doStores ? "Store" : "Atomic Inc"),
-               modified ? "modified" : "unmodified", from,
-               getDateTime().c_str(), ExperimentName);
+               op == doLoads ? "Load" : (op == doStores ? "Store" : "Atomic Inc"),
+               modified ? "modified" : "unmodified",
+               allocateInT0 ? "allocate(0)" : "allocate(n)",
+               from, getDateTime().c_str(),
+               ExperimentName);
 
         for (int i = 0; i < nThreads; i++) {
           if (measureFn == measurePlacementFrom && i == from)
@@ -823,14 +859,16 @@ int main(int argc, char ** argv) {
       return 0;
     }
     else {
-      measureFn(stats, op, modified, from);
+      measureFn(stats, op, modified, from, allocateInT0);
       printf("%s\n"
-             "%s, %s, %s, Active %d\n"
+             "%s, %s, %s, %s, Active %d\n"
              "# %s\n"
              "%s,  Samples,       Min,      Mean,       Max,        SD\n",
              ExperimentName, targetName.c_str(),
              op == doLoads ? "Load" : (op == doStores ? "Store" : "Atomic Inc"),
-             modified ? "modified" : "unmodified", from, getDateTime().c_str(),
+             modified ? "modified" : "unmodified",
+             allocateInT0 ? "allocate(0)" : "allocate(n)",
+             from, getDateTime().c_str(),
              ExperimentName);
       break;
     }
