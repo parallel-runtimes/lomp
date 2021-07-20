@@ -33,14 +33,15 @@
 #define CACHELINE_SIZE 128
 #define PAGE_SIZE (16 * 1024)
 #else
+
 #define CACHELINE_SIZE 64
 // getconf PAGE_SIZE returns 4096, on Linux/Arm so this also seems correct.
 #define PAGE_SIZE (4 * 1024)
 #endif
 
 #if (LOMP_TARGET_ARCH_AARCH64)
-// Disable here to test the std::chrono clock if desired.
 #if (1)
+// Disable here to test the std::chrono clock if desired.
 #define TARGET_HAS_TIMESTAMP 1
 #define TARGET_HAS_CACHE_FLUSH 1
 
@@ -53,6 +54,7 @@
   }
 GENERATE_READ_SYSTEM_REGISTER(uint64_t, readCycleCount, cntvct_el0)
 GENERATE_READ_SYSTEM_REGISTER(uint32_t, getHRFreq, cntfrq_el0)
+GENERATE_READ_SYSTEM_REGISTER(uint64_t, getArmID, midr_el1)
 // Tidiness for those including this
 #undef GENERATE_READ_SYSTEM_REGISTER
 

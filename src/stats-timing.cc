@@ -120,18 +120,16 @@ std::string CPUModelName() {
 std::string CPUModelName() {
 #if (LOMP_TARGET_LINUX)
   FILE * f = fopen("/proc/cpuinfo", "r");
-  if (!f) {
-    return LOMP_TARGET_ARCH_NAME;
-  }
-  char line[256];
-  while (fgets(&line[0], sizeof(line), f) != 0) {
-    if (strncmp("model name\t: ", &line[0], 13)) {
-      fclose(f);
-      return std::string(&line[13]);
+  if (f) {
+    char line[256];
+    while (fgets(&line[0], sizeof(line), f) != 0) {
+      if (strncmp("model name\t: ", &line[0], 13) == 0) {
+	fclose(f);
+	return std::string(&line[13]);
+      }
     }
+    fclose(f);
   }
-  fclose(f);
-  return LOMP_TARGET_ARCH_NAME;
 #elif (LOMP_TARGET_MACOS)
   char buffer[64]; /* Should be long enough! */
   size_t len = sizeof(buffer);
@@ -142,10 +140,36 @@ std::string CPUModelName() {
   else {
     return LOMP_TARGET_ARCH_NAME;
   }
-#else
-  // Just say the architecture; we don't know a way to do any better.
-  return LOMP_TARGET_ARCH_NAME;
 #endif /* Operating systems */
+  // Try the CPU ID register; we might be able to work it out from there.
+  uint32_t el1Reg = getArmID();
+  struct EL1 {
+    unsigned int revision : 4;
+    unsigned int partNum  : 12;
+    unsigned int architecture: 4;
+    unsigned int variant: 4;
+    unsigned int implementer: 8;
+  } el1 = *(EL1 *)&el1Reg;
+  uint32_t implementer = el1.implementer;
+  uint32_t partNum = el1.partNum;
+  std::string name;
+  // We only know about a few things here. More code is potentially needed.
+  switch (implementer) {
+  case 0x43:
+    if (partNum == 0xaf) {
+      // 0xaf == Cavium, but they're now Marvell
+      return "Marvell ThunderX2";
+    }
+    return "Unknown Cavium CPU";
+  case 0x46:
+    if (partNum == 1) {
+      return "Fujitsu A64FX";
+    }
+    return "Unknown Fujitsu CPU";
+
+  default:
+    return LOMP_TARGET_ARCH_NAME " Unknown implementer";
+  }  
 }
 #endif /* LOMP_TARGET_ARCH_X86_64 */
 } // namespace Target

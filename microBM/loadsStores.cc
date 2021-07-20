@@ -671,6 +671,7 @@ int main(int argc, char ** argv) {
   if (getenv("FLUSH_WITH_LOADS"))
     flushWithLoads = true;
   std::string targetName = Target::CPUModelName();
+  // printf("CPUModelName: %s\n", targetName.c_str());
   if (getenv("TARGET_MACHINE"))
     targetName = getenv("TARGET_MACHINE");
 
