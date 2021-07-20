@@ -15,6 +15,7 @@
 #include <atomic>
 #include <cstdint>
 #include <ctime>
+#include <string.h>
 
 #include "stats-timing.h"
 #ifndef USE_YIELD
@@ -87,7 +88,7 @@ typedef void (*Operation)(alignedUint32 * Array);
 #include <rawLoadsStores.h>
 
 // We assume that the L1$, which is what we're mostly interested in, is smaller than 16MiB
-static alignedUint32 arrayForMeasurement[measurementArraySize];
+static alignedUint32 * arrayForMeasurement;
 
 static void checkCacheAligned(void *p) {
   if ((uintptr_t(p) & (CACHELINE_SIZE - 1)) != 0) {
@@ -600,13 +601,14 @@ static void printHelp() {
       "R[aw] [n]    -- Round trip time: half the round trip time using atomic "
       "                or write from thread n (zero if unspecified)\n"
       "                If n<0 run all cases\n"
-      "P[rwa][mu][a] [n]  -- Placement: op is read/write/atomic depending on "
+      "P[rwa][mu][0] [n]  -- Placement: op is read/write/atomic depending on "
       "second "
       "letter,\n"
       "                line state [modified/unmodified] is determined by the "
       "third\n"
-      "                If the fourth letter is 'a' then allocate the measurement "
-      " array in the thread being used (default is to use a statically allocated array\n"
+      "                If the fourth letter is '0' then allocate the measurement\n"
+      "                array in thread 0 (default is to allocate in the thread\n"
+      "                doing the measurement)\n"
       "                If a second argument is present measurements are made "
       "from there; if it is <0 all positions are measured.\n"
 
@@ -645,10 +647,6 @@ static std::string getDateTime() {
 }
 
 int main(int argc, char ** argv) {
-  // Check that alignment is working
-  checkCacheAligned(&arrayForMeasurement[0]);
-  checkCacheAligned(&arrayForMeasurement[1]);
-  
   int nThreads = omp_get_max_threads();
   double tickInterval = lomp::tsc_tick_count::getTickTime();
 
@@ -680,6 +678,13 @@ int main(int argc, char ** argv) {
 #pragma omp parallel
   { forceAffinity(); }
 
+  // Allocate the array to measure, *after* we;ve messed with thread affinity.
+  arrayForMeasurement = new alignedUint32[measurementArraySize];
+  // Check that alignment is working
+  checkCacheAligned(&arrayForMeasurement[0]);
+  checkCacheAligned(&arrayForMeasurement[1]);
+  
+  
 #if (0)
   int64_t clockOffset[5][MAX_THREADS];
   computeClockOffset(&clockOffset[0][0]);
@@ -814,11 +819,11 @@ int main(int argc, char ** argv) {
       printHelp();
       return 1;
     }
-    bool allocateInT0 = true;
+    bool allocateInT0 = false;
     
     if (measureFn == measurePlacementFrom && strlen(argv[1]) >= 4) {
-      if (argv[1][3] == 'a') {
-        allocateInT0 = false;
+      if (argv[1][3] == '0') {
+        allocateInT0 = true;
       }
     }
     int from = argc > 2 ? atoi(argv[2]) : 0;
