@@ -205,7 +205,16 @@ def moveCommonToTitle(title, results):
         if i in redundantFields and p.strip() != ""
     ]
     if fields:
-        title = title + ": " + (",".join(fields))
+        title = title + ": " + (", ".join(fields))
+        maxWidth = 50
+        # If the title is too wide, try to split it into two lines
+        if len(title) > maxWidth:
+            maxWidth = len(title)//2
+            if title[maxWidth:].find(", "):
+                # Add in a new line after a comma somewhere just after half the length
+                front = title[:maxWidth]
+                (middle, ignore, back) = title[maxWidth:].partition(", ")
+                title = front + middle + ",\n" + back
     for impl in implv:
         fields = [p.strip() for p in impl.split(",")]
         newName = ",".join(
@@ -1682,7 +1691,7 @@ def generateReport():
             # print "Cannot report on " + stat + ": available stats are " + (", ".join(allStats))
             continue
 
-        thisTitle = title + ": " + stat if needStat(stat, title) else title
+        thisTitle = stat + " " + title if needStat(stat, title) else title
         outputHtmlTitle(thisTitle)
 
         okPercent = 5
@@ -1740,7 +1749,7 @@ def generateReport():
 
         if options.heatmap:
             generateHeatmap(
-                (title + " " + stat) if needStat(title, stat) else title,
+                (stat + " " + title) if needStat(title, stat) else title,
                 unit,
                 threadCounts,
                 totalTimes,
@@ -1751,7 +1760,7 @@ def generateReport():
         else:
             # The normal case, in which we're generating potentially many lines.
             generatePlot(
-                (title + " " + stat) if needStat(title, stat) else title,
+                (stat + " " + title) if needStat(title, stat) else title,
                 unit,
                 threadCounts,
                 totalTimes,
