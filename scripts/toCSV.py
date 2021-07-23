@@ -17,7 +17,7 @@ def convertSI(s):
     du = s.split()
     if len(du) != 2:
         return s
-    units = du[1] if len(du) == 2 else " "
+    units = du[1] 
     # http://physics.nist.gov/cuu/Units/prefixes.html
     factor = {
         "Y": "e24",

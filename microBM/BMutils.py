@@ -53,6 +53,11 @@ def extractMachineInfo():
         # modelName = capture("sysctl -n machdep.cpu.brand_string").strip()
         return
 
+
+
+    if modelName == "":
+        modelName = cpuInfo.getCpuInfo("model name")
+
     # Linux...
     # Not as good as sysctl, since it doesn't easily distinguish SMT threads
     # and "real" CPUs.
@@ -63,14 +68,14 @@ def extractMachineInfo():
     for line in lscpu.split("\n"):
         if "Thread(s) per core:" in line:
             threadsPerCore = int(line.split(":")[1])
-            break
+        if modelName == "" and "Model name:" in line:
+            modelName = line.split(":")[1].strip()
     if threadsPerCore == 0:
         # Dubious in the extreme
         threadsPerCore = {"aarch64" : 4, "x86_64" : 2}[arch]
     cores = cores//threadsPerCore
 
-    modelName = cpuInfo.getCpuInfo("model name")
-    # if we can't, then see if it's one of the machines we know about...
+    # If we can't, then see if it's one of the machines we know about...
     if modelName == "":
         # Host name to model name. Very installation dependent.
         # Fixes needed here for other environments
@@ -81,13 +86,16 @@ def extractMachineInfo():
             if hostName in k:
                 modelName = knownHostTags[k]
                 break
-            
+    # Leave the model name blank, so we don't pass the envirable.
+    # The code may be able to do better than we can.
+        
 # Functions which may be useful elsewhere
 def outputName(test):
     """Generate an output file name based on the test, hostname, date, and a sequence number"""
     dateString = datetime.date.today().isoformat()
     nameBase = test + "_" + hostName + "_" + dateString
     nameBase = nameBase.replace("__", "_")
+    nameBase = nameBase.replace(" ","")
     fname = nameBase + "_1.res"
     version = 1
     while os.path.exists(fname):
@@ -96,13 +104,14 @@ def outputName(test):
     return fname
 
 
-def execute(cmd, output = None):
+def execute(cmd, output = None, printOnly=False):
     if output:
-        output = "> " + output
+        output = " > " + output
         print("Running " + cmd + output)
     else:
         output = ""
-    subprocess.run(cmd + output, shell=True)
+    if not printOnly:
+        subprocess.run(cmd + output, shell=True)
 
 
 def getExecutable(image):
@@ -123,9 +132,9 @@ def computeEnv():
 
 class runDescription:
     def __init__(self, image, subOpts, extraOpts, prefix):
+        self.image = image
         self.subOptions = subOpts
         self.extraOptions = extraOpts
-        self.image = image
         self.outputNamePrefix = prefix
 
     def __str__(self):
@@ -141,7 +150,7 @@ class runDescription:
         )
 
 
-def runBM(runDesc, tests=None):
+def runBM(runDesc, tests=None, printOnly=False):
     """Run a specific benchmark with the required arguments"""
 
     if not tests:
@@ -159,4 +168,5 @@ def runBM(runDesc, tests=None):
                 execute(
                     env + runDesc.image + " " + test + opt + " " + extra,
                     outputName(runDesc.outputNamePrefix + test + opt + "_" + extra),
+                    printOnly
                 )

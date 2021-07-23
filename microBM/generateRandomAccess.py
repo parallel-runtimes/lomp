@@ -40,6 +40,8 @@ for n in range(numStores):
 print("};")
 
 numElements = 256
+print ("#define measurementArraySize ", numElements)
+
 indices = list(range(numElements))
 random.shuffle(indices)
 
