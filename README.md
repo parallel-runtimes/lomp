@@ -263,6 +263,9 @@ The following options can be set using the `cmake` command line interface:
 * `-DLOMP_WARN_ARCH_FEATURES=[on|off]`: `on` emits a warning if a dummy
   function is used for an unsupported architectural feature; `off` does not;
   the default is `on`.
+* `-DLOMP_ARM64_ARCHITECTURE=arch`: selects the ISA version for ARM64-based
+  processors; the default is `armv8.1`, use `armv8-a` for Raspberry Pi 3 and 4,
+  or `armv7-a` for Raspberry Pi 2.
 
 ### Environment Variables
 
