@@ -18,7 +18,7 @@ Please provide steps to reproduce the behavior:
 4. See error
 
 **Expected behavior**
-Please decribe what the expected behavior should have been.
+Please describe what the expected behavior should have been.
 
 **Screenshots**
 If applicable, add a screenshot to help explain the issue.
