@@ -121,9 +121,6 @@ void InitializeNumaSupport() {
       if (numa_bitmask_isbitset(mask, c)) {
         CoresInDomain.push_back(c);
       }
-      else {
-        CoresInDomain.push_back(c);
-      }
     }
     CoresPerNumaDomain.push_back(CoresInDomain);
   }
