@@ -11,13 +11,12 @@
 #include "debug.h"
 
 #include <map>
+#include <thread>
 
 #include "target.h"
 
 #if (LOMP_HAVE_LIBNUMA)
 #include <numa.h>
-#else
-#include <thread>
 #endif
 
 #if (LOMP_TARGET_LINUX)
@@ -50,16 +49,26 @@ void DumpNumaDatabase() {
   auto n = 0;
   for (auto domain : CoresPerNumaDomain) {
     debug(DebugLevel, "NUMA: NUMA Domain %lu:", n);
-    debugraw(DebugLevel, "NUMA:    ", domain.size(), "%lu ", domain.data());
+    debugraw(DebugLevel, "NUMA:    ", domain.size(), "%d ", domain.data());
     ++n;
   }
 }
 
 void InitializeNumaSupport() {
   debug(DebugLevel, "NUMA: Initializing NUMA support.");
+  bool available = false;
+  
 #if (LOMP_HAVE_LIBNUMA)
-  NumberOfNumaDomains = numa_num_configured_nodes();
-  NumberOfCores = numa_num_configured_cpus();
+  available = numa_available() != -1;
+  if (available) {
+    NumberOfNumaDomains = numa_num_configured_nodes();
+    NumberOfCores = numa_num_configured_cpus();
+  }
+  else {
+    debug(DebugLevel, "NUMA: libnuma reported -1 for it's API.  Defaulting to single NUMA domain.");
+    NumberOfNumaDomains = 1;
+    NumberOfCores = std::thread::hardware_concurrency();
+  }
 #else
 #if (LOMP_TARGET_MACOS)
   debug(DebugLevel, "NUMA: Beware, MacOS does not support the interfaces "
@@ -71,61 +80,71 @@ void InitializeNumaSupport() {
   NumberOfCores = std::thread::hardware_concurrency();
 #endif
 
+  if (!available) {
+    // No working linbNUMA, so pretend we have a single NUMA domain.
+    auto CoresInDomain = std::vector<int>();
+
+    for (size_t c = 0; c < NumberOfCores; ++c) {
+      NumaDomainForCore.push_back(0);
+      CoresInDomain.push_back(c);
+    }
+    CoresPerNumaDomain.push_back(CoresInDomain);    
+
+    // Resize the core-to-thread vector that we use to store stuff
+    CoreToThread.resize(NumberOfCores);
+
+    DumpNumaDatabase();
+    return;
+  }
+
+  // We have a working libNUMA, so use it.
+#if (LOMP_HAVE_LIBNUMA)
   debug(DebugLevel, "NUMA: Found %d core%s in %d NUMA domain%s.", NumberOfCores,
         NumberOfCores != 1 ? "s" : "", NumberOfNumaDomains,
         NumberOfNumaDomains != 1 ? "s" : "");
 
-#if (LOMP_HAVE_LIBNUMA)
-  struct bitmask * mask = numa_bitmask_alloc(NumberOfCores);
-#endif
+  struct bitmask * mask = nullptr;
+  if (available) {
+    mask = numa_bitmask_alloc(NumberOfCores);
+  }
   // Iterate over all NUMA domains and determine the bitmask for the cores in
   // the respective NUMA domain.
   for (size_t d = 0; d < NumberOfNumaDomains; ++d) {
     auto CoresInDomain = std::vector<int>();
 
-#if (LOMP_HAVE_LIBNUMA)
-    if (numa_node_to_cpus(d, mask)) {
+    if (mask && numa_node_to_cpus(d, mask)) {
       fatalError("NUMA: Error while invoking numa_node_to_cpus at %s:%d",
                  __FILE__, __LINE__);
     }
-#endif
 
-    for (size_t c = 0; c < NumberOfCores; ++c) {
-#if (LOMP_HAVE_LIBNUMA)
+    for (int c = 0; c < NumberOfCores; ++c) {
       if (numa_bitmask_isbitset(mask, c)) {
         CoresInDomain.push_back(c);
       }
-#else
-      CoresInDomain.push_back(c);
-#endif
     }
-
     CoresPerNumaDomain.push_back(CoresInDomain);
   }
 
-#if (LOMP_HAVE_LIBNUMA)
-  numa_bitmask_free(mask);
-#endif
+  if (mask) {
+    numa_bitmask_free(mask);
+  }
 
   // Now iterate over the cores and find their respective NUMA domain.  We
   // could be smarter and populate the second vector in the above loop, too.
-  for (size_t c = 0; c < NumberOfCores; ++c) {
-#if (LOMP_HAVE_LIBNUMA)
-    auto result = numa_node_of_cpu(c);
+  for (int c = 0; c < NumberOfCores; ++c) {
+    auto result = 0;
+    result = numa_node_of_cpu(c);
     if (result < 0) {
       fatalError("NUMA: Error while invoking numa_node_of_cpu at %s:%d",
                  __FILE__, __LINE__);
     }
-#else
-    auto result = 0;
-#endif
     NumaDomainForCore.push_back(result);
   }
 
   // Resize the core-to-thread vector that we use to store stuff
   CoreToThread.resize(NumberOfCores);
-
   DumpNumaDatabase();
+#endif
 }
 
 size_t GetNumberOfNumaDomains() {
