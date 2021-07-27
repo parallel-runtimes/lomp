@@ -322,12 +322,18 @@ void measureSharingFrom(lomp::statistic * stats, Operation op, bool modified,
 template <class ChannelClass>
 void measureRoundtripFrom(lomp::statistic * stats, int source) {
   int nThreads = omp_get_max_threads();
-  ChannelClass chan;
+  ChannelClass * chanp = nullptr;
   int const innerReps = 20;
 
 #pragma omp parallel
   {
     int me = omp_get_thread_num();
+    if (me == source) {
+      chanp = new ChannelClass;
+    }
+    #pragma omp barrier
+    ChannelClass * chan = chanp;
+
     for (int other = 0; other < nThreads; other++) {
       if (other == source)
         continue;
@@ -337,20 +343,22 @@ void measureRoundtripFrom(lomp::statistic * stats, int source) {
           lomp::BlockTimer bt(&stats[other]);
           // Do innerReps ping pongs
           for (int i = 0; i < innerReps; i++)
-            chan.release();
-          chan.waitFor(false); /* Need to see the final consumption */
+            chan->release();
+          chan->waitFor(false); /* Need to see the final consumption */
         }
         fprintf(stderr, ".");
       }
       else if (me == other) {
         for (int i = 0; i < NumSamples; i++) {
           for (int i = 0; i < innerReps; i++)
-            chan.wait();
+            chan->wait();
         }
       }
 #pragma omp barrier
     }
   }
+  delete chanp;
+  
   for (int i = 0; i < nThreads; i++)
     stats[i].scaleDown(
         2 * innerReps); /* We want half ping pong, hence we multiply by 2 */
