@@ -32,8 +32,10 @@ option(LOMP_ICC_SUPPORT "Build additional entry points for Intel classic compile
 option(LOMP_MICROBM_WITH_LOMP "Use LOMP for micro-benchmarks" OFF)
 option(LOMP_BUILD_MICROBM "Build micro-benchmarks" ON)
 option(LOMP_BUILD_EXAMPLES "Build example programs" ON)
+option(LOMP_SERIAL "Build a serial version of the LOMP library" OFF)
+
 # Assume aarch64 v8.1a architecture by default.
-SET(LOMP_ARM64_ARCHITECTURE "armv8.1a" CACHE STRING "Detailed aarch64 architecture passed to -march=")
+set(LOMP_ARM64_ARCHITECTURE "armv8.1a" CACHE STRING "Detailed aarch64 architecture passed to -march=")
 include(CheckCXXCompilerFlag)
 
 # look for Git

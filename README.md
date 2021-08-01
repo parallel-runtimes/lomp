@@ -236,18 +236,19 @@ The following options can be set using the `cmake` command line interface:
 * `-DCMAKE_CXX_COMPILER=xyz`: Set the C++ compiler to be `xyz`, GCC's `g++` is
   the default on most systems, but we want `clang++`. (If you have `clang++` in
   your path you can use `-DCMAKE_CXX_COMPILER=clang++`.)
+* `-DLOMP_SERIAL=[on|off]`: `on` builds a serial version of the library with
+  all entrypoints, but with only one thread at runtime.  The default is `off`.
 * `-DLOMP_BUILD_EXAMPLES=[on|off]`: `on` builds the examples, `off` does not.
   The default is `on`.
 * `-DLOMP_BUILD_MICROBM=[on|off]`: `on` builds the micro-benchmarks,
   `off` does not, the default is `on`.
 * `-DLOMP_MICROBM_WITH_LOMP=[on|off]`: `on` links the micro-benchmarks with
   LOMP,  `off` links them  against the native OpenMP runtime of the compiler
-  being used; the  default is `off`.
+  being used; the default is `off`.
 * `-DCMAKE_BUILD_TYPE=[release|debug|relwithdebinfo]`: `release` builds with
   optimization; `debug` builds without optimization and with debug
   information; `relwithdebinfo` builds with optimizations and debug
-  information.
-  The default is `release`.
+  information.  The default is `release`.
 * `-DCMAKE_VERBOSE_MAKEFILE=[on|off]`: `on` shows compiler invocation, while
   `off` does not.  The default is `off`.
 * `-DLOMP_GNU_SUPPORT=[on|off]`: `on` builds GCC entry points for libgomp;
