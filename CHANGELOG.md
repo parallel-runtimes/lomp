@@ -1,5 +1,6 @@
 # Version "next"
-* Documentation: added `critical` construct to README.md
+* Implement a serial version of LOMP runtime.
+* Documentation: added `critical` construct to README.md.
 
 # Version 0.1
 * Initial release of the LOMP runtime library
