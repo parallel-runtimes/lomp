@@ -505,6 +505,26 @@ void InvokeTask(TaskDescriptor * task) {
   default:
     fatalError("Unknown thunk calling style %d.", task->closure.thunkType);
   }
+
+  // Mark the task as completed and do all the book keeping
+  CompleteTask(task);
+
+  // Free the task descriptor and garbage-collect (grand)parent tasks that are
+  // still pointing to this child task.
+  if (task->metadata.childTasks == 0) {
+    FreeTaskAndAncestors(task);
+  }
+
+  // Restore the previous reference to the previously executing task.
+  thread->setCurrentTask(previous);
+
+  // Decrement counter of tasks in flight
+  --team->activeTasks;
+}
+
+void CompleteTask(TaskDescriptor * task) {
+  auto thread = Thread::getCurrentThread();
+
   task->metadata.flags = TaskDescriptor::Flags::Completed;
 
   // When this task finished, the parent task now has one child task left
@@ -524,18 +544,6 @@ void InvokeTask(TaskDescriptor * task) {
   if (auto taskgroup = task->metadata.taskgroup; taskgroup) {
     --taskgroup->activeTasks;
   }
-
-  // Free the task descriptor and garbage-collect (grand)parent tasks that are
-  // still pointing to this child task.
-  if (task->metadata.childTasks == 0) {
-    FreeTaskAndAncestors(task);
-  }
-
-  // Restore the previous reference to the previously executing task.
-  thread->setCurrentTask(previous);
-
-  // Decrement counter of tasks in flight
-  --team->activeTasks;
 }
 
 #if USE_RANDOM_STEALING

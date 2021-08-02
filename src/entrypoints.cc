@@ -245,6 +245,24 @@ int32_t __kmpc_omp_task(ident_t *, // where
   return 0; // Caller ignores return value
 }
 
+void __kmpc_omp_task_begin_if0(ident_t *, // where
+                               int32_t,   // gtid
+                               void * new_task) {
+  // Do nothing, as the task is invoked in the compiler-generated code.
+}
+
+void __kmpc_omp_task_complete_if0(ident_t *, // where
+                                  int32_t,   // gtid
+                                  void * new_task) {
+  // The invoked task in the compiler-generated code has finished execution,
+  // so we need to cleanup the task descriptor here.
+  auto closure =
+      reinterpret_cast<lomp::Tasking::TaskDescriptor::Closure *>(new_task);
+  lomp::Tasking::TaskDescriptor * task = lomp::Tasking::ClosureToTask(closure);
+  lomp::Tasking::CompleteTask(task);
+  lomp::Tasking::FreeTaskAndAncestors(task);
+}
+
 int32_t __kmpc_omp_taskwait(ident_t *, // where
                             int32_t)   // gtid
 {
