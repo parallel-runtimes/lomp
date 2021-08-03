@@ -393,11 +393,9 @@ void InitializeTaskDescriptor(TaskDescriptor * task, size_t sizeOfTaskClosure,
 #endif
 }
 
-bool StoreTask(TaskDescriptor * task) {
+void PrepareTask(TaskDescriptor * task) {
   auto thread = Thread::getCurrentThread();
   auto team = thread->getTeam();
-  auto taskPool = thread->getTaskPool();
-  bool result = true;
 
   // Count this task as being created for determining how many tasks are left to
   // be executed.
@@ -412,12 +410,19 @@ bool StoreTask(TaskDescriptor * task) {
   else {
     thread->childTasks++;
   }
-
+ 
   // Now we have to also record this task as active for a potentially active
   // taskgroup
   if (auto taskgroup = task->metadata.taskgroup; taskgroup) {
     taskgroup->activeTasks++;
   }
+}
+
+bool StoreTask(TaskDescriptor * task) {
+  auto thread = Thread::getCurrentThread();
+  auto team = thread->getTeam();
+  auto taskPool = thread->getTaskPool();
+  bool result = true;
 
   // Try to put the task into the pool.
   if (!taskPool->put(task)) {

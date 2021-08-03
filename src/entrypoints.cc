@@ -241,6 +241,7 @@ int32_t __kmpc_omp_task(ident_t *, // where
   auto closure =
       reinterpret_cast<lomp::Tasking::TaskDescriptor::Closure *>(new_task);
   lomp::Tasking::TaskDescriptor * task = lomp::Tasking::ClosureToTask(closure);
+  lomp::Tasking::PrepareTask(task);
   lomp::Tasking::StoreTask(task);
   return 0; // Caller ignores return value
 }
@@ -259,6 +260,7 @@ void __kmpc_omp_task_complete_if0(ident_t *, // where
   auto closure =
       reinterpret_cast<lomp::Tasking::TaskDescriptor::Closure *>(new_task);
   lomp::Tasking::TaskDescriptor * task = lomp::Tasking::ClosureToTask(closure);
+  // TODO: do we need to call PrepareTask here, too?
   lomp::Tasking::CompleteTask(task);
   lomp::Tasking::FreeTaskAndAncestors(task);
 }
@@ -391,25 +393,38 @@ void GOMP_task(void (*thunk)(void *), void * data,
         "The GOMP_task entrypoint does not support copy functors.");
   }
 
+  printf("flags=%d, cond=%d\n", flags, cond);
+
   // Use the LLVM-style task allocator to create some memory for the task and
   // its descriptor.  To avoid some code duplication, we are faking the thunk
   // pointer by casting it to an LLVM-style thunk pointer (which does not make a
   // real difference when initializing the task).
-  auto task = reinterpret_cast<lomp::Tasking::TaskDescriptor::Closure *>(
+  auto closure = reinterpret_cast<lomp::Tasking::TaskDescriptor::Closure *>(
       __kmpc_omp_task_alloc(nullptr, 0, nullptr,
                             sizeof(lomp::Tasking::TaskDescriptor), argsz,
                             reinterpret_cast<void *>(thunk)));
 
   // Memorize that we have a GNU-style thunk function (this overwrites the
   // default that the task initialization has put into the task descriptor).
-
-  task->thunkType = lomp::Tasking::TaskDescriptor::ThunkType::GNUStyle;
+  closure->thunkType = lomp::Tasking::TaskDescriptor::ThunkType::GNUStyle;
 
   // Store the task's data pointer in the storage of the task descriptor
-  memcpy(task->data, data, argsz);
+  memcpy(closure->data, data, argsz);
 
-  // Submit the task for execution using the LLVM-style task API.
-  __kmpc_omp_task(nullptr, 0, task);
+  if (cond) {
+    // Submit the task for execution using the LLVM-style task API.
+    printf("DEFER!\n");
+    __kmpc_omp_task(nullptr, 0, closure);
+  }
+  else {
+    printf("IMMEDIATE!\n");
+    // This is an if(0) task, so execute it in place, do not defer it.
+    __kmpc_omp_task_begin_if0(nullptr, 0, closure);
+    auto task = ClosureToTask(closure);
+    lomp::Tasking::PrepareTask(task);
+    lomp::Tasking::InvokeTask(task);
+    // __kmpc_omp_task_complete_if0(nullptr, 0, closure);
+  }
 
   debug_leave();
 }
