@@ -29,17 +29,26 @@ static struct {
     // This is intentional; we want to default to kmp_sch_static on input unless there is a chunk
     // but translate static chunked back to static on output.
     {"static", kmp_sch_static_chunked, omp_sched_static},
+    // Ignore monotonicity specification on static schedules
+    {"monotonic:static", kmp_sch_static, omp_sched_t(omp_sched_static | omp_sched_monotonic)},
+    {"nonmonotonic:static", kmp_sch_static, omp_sched_static},
+    // Auto => static internally
     {"auto", kmp_sch_static, omp_sched_auto},
+    // Ignore specification of monotonicity on guided scheules.
     {"guided", kmp_sch_guided_chunked, omp_sched_guided},
+    {"monotonic:guided", kmp_sch_guided_chunked, omp_sched_t(omp_sched_guided | omp_sched_monotonic)},
+    {"nonmonotonic:guided", kmp_sch_guided_chunked, omp_sched_guided},
+    // Observe monotonicity on dynamic schedule.
+    {"dynamic",
+     kmp_sched_t(kmp_sch_modifier_nonmonotonic | kmp_sch_dynamic_chunked),
+     omp_sched_dynamic},
     {"nonmonotonic:dynamic",
      kmp_sched_t(kmp_sch_modifier_nonmonotonic | kmp_sch_dynamic_chunked),
      omp_sched_dynamic},
     {"monotonic:dynamic",
      kmp_sched_t(kmp_sch_modifier_monotonic | kmp_sch_dynamic_chunked),
      omp_sched_t(omp_sched_dynamic | omp_sched_monotonic)},
-    {"dynamic",
-     kmp_sched_t(kmp_sch_modifier_nonmonotonic | kmp_sch_dynamic_chunked),
-     omp_sched_dynamic},
+    // Our debug testing version. Non-monotic, but start with all the work in one place!
     {"imbalanced", kmp_sch_imbalanced, lomp_sched_imbalanced},
 };
 enum { numSchedules = sizeof(schedules) / sizeof(schedules[0]) };
@@ -671,12 +680,18 @@ void dynamicLoop::setSchedule(int32_t sched) {
   // And fill in the dispatch function.
   switch (schedule) {
   case kmp_sch_static:
+  case kmp_sch_static | kmp_sch_modifier_monotonic:
+  case kmp_sch_static | kmp_sch_modifier_nonmonotonic:
     setDispatchFunction(&dynamicLoop::dispatchStatic<loopVarType>);
     break;
   case kmp_sch_static_chunked:
+  case kmp_sch_static_chunked | kmp_sch_modifier_monotonic:
+  case kmp_sch_static_chunked | kmp_sch_modifier_nonmonotonic:
     setDispatchFunction(&dynamicLoop::dispatchStaticChunked<loopVarType>);
     break;
   case kmp_sch_guided_chunked:
+  case kmp_sch_guided_chunked | kmp_sch_modifier_monotonic:
+  case kmp_sch_guided_chunked | kmp_sch_modifier_nonmonotonic:
     setDispatchFunction(&dynamicLoop::dispatchGuided<loopVarType>);
     break;
   case kmp_sch_dynamic_chunked:
