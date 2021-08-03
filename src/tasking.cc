@@ -540,7 +540,11 @@ void InvokeTask(TaskDescriptor * task) {
 
 #if USE_RANDOM_STEALING
 size_t GetRandomNumber(size_t min, size_t max) {
+#if LOMP_SERIAL
+  static std::mt19937 generator(clock());
+#else
   static thread_local std::mt19937 generator(clock());
+#endif
   std::uniform_int_distribution<size_t> distribution(min, max);
   return distribution(generator);
 }
