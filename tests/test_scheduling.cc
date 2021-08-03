@@ -166,12 +166,14 @@ static struct scheduleInfo {
 } schedules[] = {
     {"auto", omp_sched_auto},
     {"static", omp_sched_static},
+    {"monotonic:static", omp_sched_t(omp_sched_static | omp_sched_monotonic)},
     {"guided", omp_sched_guided},
+    {"monotonic:guided", omp_sched_t(omp_sched_guided | omp_sched_monotonic)},
     {"dynamic", omp_sched_dynamic}, /* == nonmonotonic:dynamic */
+    {"monotonic:dynamic", omp_sched_t(omp_sched_dynamic | omp_sched_monotonic)}, 
     /* hack for testing: all iterations allocated to thread zero, then behave as nonmnotonic */
     {"imbalanced", omp_sched_t(32)},
-    {"monotonic:dynamic",
-     omp_sched_t(omp_sched_dynamic | omp_sched_monotonic)}};
+};
 enum { nSchedules = sizeof(schedules) / sizeof(schedules[0]) };
 
 static int testSchedule(scheduleInfo * sch) {
