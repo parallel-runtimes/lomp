@@ -248,7 +248,7 @@ int32_t __kmpc_omp_task(ident_t *, // where
 
 void __kmpc_omp_task_begin_if0(ident_t *, // where
                                int32_t,   // gtid
-                               void *     // new_task) {
+                               void *) {  // new_task 
   // Do nothing, as the task is invoked in the compiler-generated code.
 }
 
