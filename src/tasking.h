@@ -71,10 +71,12 @@ TaskDescriptor * ClosureToTask(TaskDescriptor::Closure * closure);
 TaskDescriptor * AllocateTask(size_t sizeOfTaskClosure, size_t sizeOfShareds);
 void InitializeTaskDescriptor(TaskDescriptor * task, size_t sizeOfTaskClosure,
                               size_t sizeOfShareds, ThunkPointer task_entry);
+void PrepareTask(TaskDescriptor * task);
 bool StoreTask(TaskDescriptor * task);
-void FreeTask();
+void FreeTask(TaskDescriptor * task);
 void FreeTaskAndAncestors(TaskDescriptor * task);
 void InvokeTask(TaskDescriptor * task);
+void CompleteTask(TaskDescriptor * task);
 bool ScheduleTask();
 void TaskExecutionBarrier(bool internalBarrier);
 bool TaskWait();

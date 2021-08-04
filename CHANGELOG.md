@@ -1,5 +1,6 @@
 # Version "next"
 * Documentation: added `critical` construct to README.md
+* Add entrypoints for tasks with `if(0)` clause.
 
 # Version 0.1
 * Initial release of the LOMP runtime library
