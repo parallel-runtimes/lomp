@@ -419,19 +419,17 @@ void PrepareTask(TaskDescriptor * task) {
 }
 
 bool StoreTask(TaskDescriptor * task) {
-  auto thread = Thread::getCurrentThread();
-  auto team = thread->getTeam();
-  auto taskPool = thread->getTaskPool();
-  bool result = true;
-
+  auto taskPool = Thread::getCurrentThread()->getTaskPool();
+  
   // Try to put the task into the pool.
-  if (!taskPool->put(task)) {
+  if (taskPool->put(task)) {
+    return true;
+  } else {
     // There was no free slot in the task pool. Execute the task immediately,
     // to avoid a stall of execution.
     InvokeTask(task);
-    result = false;
+    return false;
   }
-  return result;
 }
 
 void FreeTask(TaskDescriptor * task) {
