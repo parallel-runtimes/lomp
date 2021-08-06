@@ -342,27 +342,31 @@ void __kmpc_end_critical(ident_t *, // where
 void GOMP_parallel(void (*thunk)(void *), void * args, unsigned nthreads) {
   debug_enter();
 
-  // TODO: we have to deal with nthreads
-
-  // Build the packedBody so that we can pass the arguments around
-  lomp::InvocationInfo packedBody(thunk, args);
-
   // Find the thread team and associated data structures
   lomp::Thread * Me = lomp::Thread::getCurrentThread();
   lomp::ThreadTeam * Team = Me->getTeam();
-  lomp::Barrier * Barrier = Team->getBarrier();
 
   // For now we don't support nested parallelism, so abort if it is attempted.
   if (UNLIKELY(Team->inParallel())) {
-    lomp::fatalError("Nested parallelism is not supported: attempted from call "
+    lomp::fatalError("Nested parallelism is not yet supported: attempted from a call to "
                      "GOMP_parallel.");
   }
 
+  // Similarly changing team size is not yet supported.
+  if (nthreads != 0 && Team->getCount() != nthreads) {
+    lomp::fatalError("Adjusting team size is not yet supported: a call to "
+                     "GOMP_parallel asked for %u threads but the current team"
+                     " size is %u.", nthreads, Team->getCount());
+  }
+  
   // Remember that we're now inside a parallel region
   Team->enterParallel();
 
   // Dispatch work to the other threads
   LOMP_ASSERT(Me->getLocalId() == 0);
+  // Build the packedBody so that we can pass the arguments around
+  lomp::InvocationInfo packedBody(thunk, args);
+  lomp::Barrier * Barrier = Team->getBarrier();
   Barrier->wakeUp(0, &packedBody);
 
   // Execute the body here too.
