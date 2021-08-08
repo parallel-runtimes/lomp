@@ -106,13 +106,14 @@ possibly incomplete, list is:
 * the [`teams`](https://www.openmp.org/spec-html/5.1/openmpse15.html#x62-620002.7)
   and
   [`distribute`](https://www.openmp.org/spec-html/5.1/openmpsu50.html#x75-800002.11.6.1) constructs.
-* the [cancellation constructs](https://www.openmp.org/spec-html/5.1/openmpse28.html#x144-1560002.20);
+* the [cancellation](https://www.openmp.org/spec-html/5.1/openmpse28.html#x144-1560002.20) constructs;
 * offloading to accelerator devices, such as GPUs; and
 * probably other things which we haven't noticed!
 
 The runtime is also, of course, limited in the language it can support
-by the compiler.  There are therefore some OpenMP 5.1 features which
-are not yet implemented since there is no compiler support for them yet.
+by the compiler.  There are therefore some OpenMP API version 5.1 features
+which are not yet implemented since there is no compiler support for them
+yet.
 
 If you would like to contribute any features to LOMP, please see below.
 
