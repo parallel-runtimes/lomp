@@ -90,7 +90,7 @@ typedef void (*Operation)(alignedUint32 * Array);
 // We assume that the L1$, which is what we're mostly interested in, is smaller than 16MiB
 static alignedUint32 * arrayForMeasurement;
 
-static void checkCacheAligned(void *p) {
+static void checkCacheAligned(void * p) {
   if ((uintptr_t(p) & (CACHELINE_SIZE - 1)) != 0) {
     fprintf(stderr, "Array is not aligned as required\n");
     exit(1);
@@ -109,7 +109,7 @@ void flushCacheWithLoads() {
 /* Choose the default, based on the target architecture */
 static bool flushWithLoads = !TARGET_HAS_CACHE_FLUSH;
 
-void flushMeasurementArray(alignedUint32 *array) {
+void flushMeasurementArray(alignedUint32 * array) {
   if (flushWithLoads)
     flushCacheWithLoads();
   else
@@ -180,7 +180,7 @@ void measurePlacementFrom(lomp::statistic * stats, Operation op, bool modified,
 
   if (allocateInT0)
     arrayToMeasure = &arrayForMeasurement[0];
-  
+
 #pragma omp parallel
   {
     int me = omp_get_thread_num();
@@ -233,7 +233,7 @@ void measurePlacementFrom(lomp::statistic * stats, Operation op, bool modified,
   }
   if (!allocateInT0)
     delete[] arrayToMeasure;
-  
+
   // The function operates on measurementArraySize lines, so we scale down the time
   // to get that for a single operation.
   for (int i = 0; i < nThreads; i++)
@@ -606,8 +606,10 @@ static void printHelp() {
       "letter,\n"
       "                line state [modified/unmodified] is determined by the "
       "third\n"
-      "                If the fourth letter is '0' then allocate the measurement\n"
-      "                array in thread 0 (default is to allocate in the thread\n"
+      "                If the fourth letter is '0' then allocate the "
+      "measurement\n"
+      "                array in thread 0 (default is to allocate in the "
+      "thread\n"
       "                doing the measurement)\n"
       "                If a second argument is present measurements are made "
       "from there; if it is <0 all positions are measured.\n"
@@ -684,8 +686,7 @@ int main(int argc, char ** argv) {
   // Check that alignment is working
   checkCacheAligned(&arrayForMeasurement[0]);
   checkCacheAligned(&arrayForMeasurement[1]);
-  
-  
+
 #if (0)
   int64_t clockOffset[5][MAX_THREADS];
   computeClockOffset(&clockOffset[0][0]);
@@ -821,7 +822,7 @@ int main(int argc, char ** argv) {
       return 1;
     }
     bool allocateInT0 = false;
-    
+
     if (measureFn == measurePlacementFrom && strlen(argv[1]) >= 4) {
       if (argv[1][3] == '0') {
         allocateInT0 = true;
@@ -831,7 +832,7 @@ int main(int argc, char ** argv) {
 
     if (from < 0) {
       // Run all of them...
-      NumSamples = NumSamples/4;
+      NumSamples = NumSamples / 4;
       for (from = 0; from < nThreads; from++) {
         measureFn(stats, op, modified, from, allocateInT0);
 
@@ -847,11 +848,11 @@ int main(int argc, char ** argv) {
                "# %s\n"
                "%s,  Samples,       Min,      Mean,       Max,        SD\n",
                ExperimentName, targetName.c_str(),
-               op == doLoads ? "Load" : (op == doStores ? "Store" : "Atomic Inc"),
+               op == doLoads ? "Load"
+                             : (op == doStores ? "Store" : "Atomic Inc"),
                modified ? "modified" : "unmodified",
-               allocateInT0 ? "allocate(0)" : "allocate(n)",
-               from, getDateTime().c_str(),
-               ExperimentName);
+               allocateInT0 ? "allocate(0)" : "allocate(n)", from,
+               getDateTime().c_str(), ExperimentName);
 
         for (int i = 0; i < nThreads; i++) {
           if (measureFn == measurePlacementFrom && i == from)
@@ -873,9 +874,8 @@ int main(int argc, char ** argv) {
              ExperimentName, targetName.c_str(),
              op == doLoads ? "Load" : (op == doStores ? "Store" : "Atomic Inc"),
              modified ? "modified" : "unmodified",
-             allocateInT0 ? "allocate(0)" : "allocate(n)",
-             from, getDateTime().c_str(),
-             ExperimentName);
+             allocateInT0 ? "allocate(0)" : "allocate(n)", from,
+             getDateTime().c_str(), ExperimentName);
       break;
     }
   }
@@ -897,7 +897,7 @@ int main(int argc, char ** argv) {
     }
     if (from < 0) {
       // Run all of them...
-      NumSamples = NumSamples/4;
+      NumSamples = NumSamples / 4;
       for (from = 0; from < nThreads; from++) {
         measureFn(stats, from);
 

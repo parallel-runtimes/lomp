@@ -248,7 +248,7 @@ int32_t __kmpc_omp_task(ident_t *, // where
 
 void __kmpc_omp_task_begin_if0(ident_t *, // where
                                int32_t,   // gtid
-                               void *) {  // new_task 
+                               void *) {  // new_task
   // Do nothing, as the task is invoked in the compiler-generated code.
 }
 
@@ -348,17 +348,19 @@ void GOMP_parallel(void (*thunk)(void *), void * args, unsigned nthreads) {
 
   // For now we don't support nested parallelism, so abort if it is attempted.
   if (UNLIKELY(Team->inParallel())) {
-    lomp::fatalError("Nested parallelism is not yet supported: attempted from a call to "
-                     "GOMP_parallel.");
+    lomp::fatalError(
+        "Nested parallelism is not yet supported: attempted from a call to "
+        "GOMP_parallel.");
   }
 
   // Similarly changing team size is not yet supported.
   if (nthreads != 0 && Team->getCount() != nthreads) {
     lomp::fatalError("Adjusting team size is not yet supported: a call to "
                      "GOMP_parallel asked for %u threads but the current team"
-                     " size is %u.", nthreads, Team->getCount());
+                     " size is %u.",
+                     nthreads, Team->getCount());
   }
-  
+
   // Remember that we're now inside a parallel region
   Team->enterParallel();
 
@@ -389,15 +391,27 @@ void GOMP_barrier(void) {
 
 void GOMP_task(void (*thunk)(void *), void * data,
                void (*copyfunc)(void *, void *), long argsz, long argaln,
-               bool cond, unsigned flags, void ** dependences) {
+               bool cond, unsigned flags,
+               void ** dependences) {
   debug_enter();
 
+  // Check for things we don't yet support and abort if they're used.
   if (copyfunc) {
-    lomp::printWarning(
-        "The GOMP_task entrypoint does not support copy functors.");
+    lomp::fatalError(
+        "The LOMP implementation of GOMP_task does not yet support copy functors.");
   }
-
-  printf("flags=%d, cond=%d\n", flags, cond);
+  if (argaln) {
+    lomp::fatalError(
+        "The LOMP implementation of GOMP_task does not yet support argument alignment.");
+  }
+  if (flags) {
+    lomp::fatalError(
+        "The LOMP implementation of GOMP_task does not yet support the flags argument.");
+  }
+  if (dependences) {
+    lomp::fatalError(
+        "The LOMP implementation of GOMP_task does not yet support dependences.");
+  }
 
   // Use the LLVM-style task allocator to create some memory for the task and
   // its descriptor.  To avoid some code duplication, we are faking the thunk
@@ -417,11 +431,9 @@ void GOMP_task(void (*thunk)(void *), void * data,
 
   if (cond) {
     // Submit the task for execution using the LLVM-style task API.
-    printf("DEFER!\n");
     __kmpc_omp_task(nullptr, 0, closure);
   }
   else {
-    printf("IMMEDIATE!\n");
     // This is an if(0) task, so execute it in place, do not defer it.
     __kmpc_omp_task_begin_if0(nullptr, 0, closure);
     auto task = ClosureToTask(closure);
@@ -461,7 +473,7 @@ int GOMP_single_start(void) {
 void GOMP_loop_end() {
   debug_enter();
 #if (LOMP_WARN_API_STUBS)
-#warning "Function GOMP_loop_end() not implemented"
+#warning "Function GOMP_loop_end() is not yet implemented."
 #endif
   lomp::fatalError("The runtime entrypoint %s (at %s:%d) is not implemented.",
                    __FUNCTION__, __FILE__, __LINE__);
@@ -471,7 +483,7 @@ void GOMP_loop_end() {
 void GOMP_loop_maybe_nonmonotonic_runtime_start() {
   debug_enter();
 #if (LOMP_WARN_API_STUBS)
-#warning "Function GOMP_loop_maybe_nonmonotonic_runtime_start() not implemented"
+#warning "Function GOMP_loop_maybe_nonmonotonic_runtime_start() is not yet implemented."
 #endif
   lomp::fatalError("The runtime entrypoint %s (at %s:%d) is not implemented.",
                    __FUNCTION__, __FILE__, __LINE__);
@@ -481,7 +493,7 @@ void GOMP_loop_maybe_nonmonotonic_runtime_start() {
 void GOMP_loop_maybe_nonmonotonic_runtime_next() {
   debug_enter();
 #if (LOMP_WARN_API_STUBS)
-#warning "Function GOMP_loop_maybe_nonmonotonic_runtime_next() not implemented"
+#warning "Function GOMP_loop_maybe_nonmonotonic_runtime_next() is not yet implemented."
 #endif
   lomp::fatalError("The runtime entrypoint %s (at %s:%d) is not implemented.",
                    __FUNCTION__, __FILE__, __LINE__);
@@ -491,7 +503,7 @@ void GOMP_loop_maybe_nonmonotonic_runtime_next() {
 void GOMP_critical_start(void) {
   debug_enter();
 #if (LOMP_WARN_API_STUBS)
-#warning "Function GOMP_loop_maybe_nonmonotonic_runtime_next() not implemented"
+#warning "Function GOMP_critical_start() is not yet implemented."
 #endif
   lomp::fatalError("The runtime entrypoint %s (at %s:%d) is not implemented.",
                    __FUNCTION__, __FILE__, __LINE__);
@@ -501,27 +513,27 @@ void GOMP_critical_start(void) {
 void GOMP_critical_end(void) {
   debug_enter();
 #if (LOMP_WARN_API_STUBS)
-#warning "Function GOMP_loop_maybe_nonmonotonic_runtime_next() not implemented"
+#warning "Function GOMP_critical_end() not yet implemented."
 #endif
   lomp::fatalError("The runtime entrypoint %s (at %s:%d) is not implemented.",
                    __FUNCTION__, __FILE__, __LINE__);
   debug_leave();
 }
 
-void GOMP_critical_name_start(void ** ptr) {
+void GOMP_critical_name_start(void **) {
   debug_enter();
 #if (LOMP_WARN_API_STUBS)
-#warning "Function GOMP_loop_maybe_nonmonotonic_runtime_next() not implemented"
+#warning "Function GOMP_critical_name_start() is not implemented."
 #endif
   lomp::fatalError("The runtime entrypoint %s (at %s:%d) is not implemented.",
                    __FUNCTION__, __FILE__, __LINE__);
   debug_leave();
 }
 
-void GOMP_critical_name_end(void ** ptr) {
+void GOMP_critical_name_end(void **) {
   debug_enter();
 #if (LOMP_WARN_API_STUBS)
-#warning "Function GOMP_loop_maybe_nonmonotonic_runtime_next() not implemented"
+#warning "Function GOMP_critical_name_end() is not yet implemented."
 #endif
   lomp::fatalError("The runtime entrypoint %s (at %s:%d) is not implemented.",
                    __FUNCTION__, __FILE__, __LINE__);
@@ -550,7 +562,7 @@ int32_t __kmpc_ok_to_fork(ident_t *) {
 
 void __kmpc_serialized_parallel(ident_t * where, int32_t) {
 #if (LOMP_WARN_API_STUBS)
-#warning "Function "__FUNCTION__"() is not implemented yet."
+#warning "Function __kmpc_serialized_parallel() is not implemented yet."
 #endif
   lomp::fatalError("The runtime entrypoint %s (at %s:%d) is not implemented.",
                    __FUNCTION__, __FILE__, __LINE__);

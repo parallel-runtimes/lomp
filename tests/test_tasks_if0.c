@@ -18,7 +18,7 @@ int main(void) {
 #pragma omp master
   {
     for (int i = 0; i < NTASKS; i++) {
-#pragma omp task shared(count) if(0)
+#pragma omp task shared(count) if (0)
       {
 #pragma omp atomic
         count++;

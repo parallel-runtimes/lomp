@@ -124,8 +124,8 @@ std::string CPUModelName() {
     char line[256];
     while (fgets(&line[0], sizeof(line), f) != 0) {
       if (strncmp("model name\t: ", &line[0], 13) == 0) {
-	fclose(f);
-	return std::string(&line[13]);
+        fclose(f);
+        return std::string(&line[13]);
       }
     }
     fclose(f);
@@ -145,10 +145,10 @@ std::string CPUModelName() {
   uint32_t el1Reg = getArmID();
   struct EL1 {
     unsigned int revision : 4;
-    unsigned int partNum  : 12;
-    unsigned int architecture: 4;
-    unsigned int variant: 4;
-    unsigned int implementer: 8;
+    unsigned int partNum : 12;
+    unsigned int architecture : 4;
+    unsigned int variant : 4;
+    unsigned int implementer : 8;
   } el1 = *(EL1 *)&el1Reg;
   uint32_t implementer = el1.implementer;
   uint32_t partNum = el1.partNum;
@@ -169,7 +169,7 @@ std::string CPUModelName() {
 
   default:
     return LOMP_TARGET_ARCH_NAME " Unknown implementer";
-  }  
+  }
 }
 #endif /* LOMP_TARGET_ARCH_X86_64 */
 } // namespace Target

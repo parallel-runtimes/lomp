@@ -57,7 +57,7 @@ void DumpNumaDatabase() {
 void InitializeNumaSupport() {
   debug(DebugLevel, "NUMA: Initializing NUMA support.");
   bool available = false;
-  
+
 #if (LOMP_HAVE_LIBNUMA)
   available = numa_available() != -1;
   if (available) {
@@ -65,7 +65,8 @@ void InitializeNumaSupport() {
     NumberOfCores = numa_num_configured_cpus();
   }
   else {
-    debug(DebugLevel, "NUMA: libnuma reported -1 for it's API.  Defaulting to single NUMA domain.");
+    debug(DebugLevel, "NUMA: libnuma reported -1 for it's API.  Defaulting to "
+                      "single NUMA domain.");
     NumberOfNumaDomains = 1;
     NumberOfCores = std::thread::hardware_concurrency();
   }

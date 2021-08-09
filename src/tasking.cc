@@ -410,7 +410,7 @@ void PrepareTask(TaskDescriptor * task) {
   else {
     thread->childTasks++;
   }
- 
+
   // Now we have to also record this task as active for a potentially active
   // taskgroup
   if (auto taskgroup = task->metadata.taskgroup; taskgroup) {
@@ -420,11 +420,12 @@ void PrepareTask(TaskDescriptor * task) {
 
 bool StoreTask(TaskDescriptor * task) {
   auto taskPool = Thread::getCurrentThread()->getTaskPool();
-  
+
   // Try to put the task into the pool.
   if (taskPool->put(task)) {
     return true;
-  } else {
+  }
+  else {
     // There was no free slot in the task pool. Execute the task immediately,
     // to avoid a stall of execution.
     InvokeTask(task);

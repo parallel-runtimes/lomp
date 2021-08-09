@@ -30,13 +30,15 @@ static struct {
     // but translate static chunked back to static on output.
     {"static", kmp_sch_static_chunked, omp_sched_static},
     // Ignore monotonicity specification on static schedules
-    {"monotonic:static", kmp_sch_static, omp_sched_t(omp_sched_static | omp_sched_monotonic)},
+    {"monotonic:static", kmp_sch_static,
+     omp_sched_t(omp_sched_static | omp_sched_monotonic)},
     {"nonmonotonic:static", kmp_sch_static, omp_sched_static},
     // Auto => static internally
     {"auto", kmp_sch_static, omp_sched_auto},
     // Ignore specification of monotonicity on guided scheules.
     {"guided", kmp_sch_guided_chunked, omp_sched_guided},
-    {"monotonic:guided", kmp_sch_guided_chunked, omp_sched_t(omp_sched_guided | omp_sched_monotonic)},
+    {"monotonic:guided", kmp_sch_guided_chunked,
+     omp_sched_t(omp_sched_guided | omp_sched_monotonic)},
     {"nonmonotonic:guided", kmp_sch_guided_chunked, omp_sched_guided},
     // Observe monotonicity on dynamic schedule.
     {"dynamic",

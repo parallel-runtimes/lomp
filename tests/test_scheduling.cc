@@ -170,7 +170,7 @@ static struct scheduleInfo {
     {"guided", omp_sched_guided},
     {"monotonic:guided", omp_sched_t(omp_sched_guided | omp_sched_monotonic)},
     {"dynamic", omp_sched_dynamic}, /* == nonmonotonic:dynamic */
-    {"monotonic:dynamic", omp_sched_t(omp_sched_dynamic | omp_sched_monotonic)}, 
+    {"monotonic:dynamic", omp_sched_t(omp_sched_dynamic | omp_sched_monotonic)},
     /* hack for testing: all iterations allocated to thread zero, then behave as nonmnotonic */
     {"imbalanced", omp_sched_t(32)},
 };
