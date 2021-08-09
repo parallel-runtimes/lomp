@@ -71,7 +71,7 @@ for shared-memory multi-threading.  Supported OpenMP features are
 * the `critical` construct;
 * the `flush` construct;
 * the `task` construct, including the data-sharing clauses `shared`, `private`,
-  and `firstprivate`;
+  `firstprivate`, and `if`;
 * the `taskwait` construct; and
 * the `taskgroup` construct.
 
