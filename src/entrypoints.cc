@@ -223,9 +223,15 @@ void __kmpc_flush(ident_t *) {
 // Tasking interfaces
 void * __kmpc_omp_task_alloc(ident_t *, // where
                              int32_t,   // gtid
-                             void *,    // flags
+                             int32_t flags,
                              size_t sizeOfTaskClosure, size_t sizeOfShareds,
                              void * thunkPtr) {
+  if (flags != 1) {
+    // We do not support anything like untied, final, mergeable, etc.
+    lomp::fatalError("LOMP does not support advanced task features, "
+                     "e.g. untied, final, mergeable, etc.");
+  }
+
   auto thunk = reinterpret_cast<lomp::Tasking::ThunkPointer>(thunkPtr);
   // we just pass the final size and the routine pointer to the allocation routine
   lomp::Tasking::TaskDescriptor * task =
@@ -395,12 +401,18 @@ void GOMP_task(void (*thunk)(void *), void * data,
         "The GOMP_task entrypoint does not support copy functors.");
   }
 
+  if (flags) {
+    // We do not support anything like untied, final, mergeable, etc.
+    lomp::fatalError("LOMP does not support advanced task features, "
+                     "e.g. untied, final, mergeable, etc.");
+  }
+
   // Use the LLVM-style task allocator to create some memory for the task and
   // its descriptor.  To avoid some code duplication, we are faking the thunk
   // pointer by casting it to an LLVM-style thunk pointer (which does not make a
   // real difference when initializing the task).
   auto closure = reinterpret_cast<lomp::Tasking::TaskDescriptor::Closure *>(
-      __kmpc_omp_task_alloc(nullptr, 0, nullptr,
+      __kmpc_omp_task_alloc(nullptr, 0, 0,
                             sizeof(lomp::Tasking::TaskDescriptor), argsz,
                             reinterpret_cast<void *>(thunk)));
 
