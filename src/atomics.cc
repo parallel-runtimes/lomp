@@ -583,6 +583,7 @@ namespace lomp {
 #define expandInlineBinaryOp(type, typetag, op, optag, reversed)               \
   void __kmpc_atomic_##typetag##_##optag(ident_t *, int *, type * target,      \
                                          type operand) {                       \
+    LOMP_ASSERT(sizeof(type) == sizeof(std::atomic<type>));                    \
     std::atomic<type> * t = (std::atomic<type> *)target;                       \
     *t op## = operand;                                                         \
   }
@@ -605,6 +606,7 @@ union bitRep {
                                          type operand) {                       \
     typedef typename typeTraits_t<type>::uint_t unsignedType;                  \
     typedef typename std::atomic<unsignedType> atomicType;                     \
+    LOMP_ASSERT(sizeof(unsignedType) == sizeof(std::atomic<unsignedType>));    \
     atomicType * t = (atomicType *)target;                                     \
     typedef bitRep<type> sharedBits;                                           \
                                                                                \
@@ -651,6 +653,7 @@ union bitRep {
                                          type operand) {                       \
     typedef typename typeTraits_t<type>::uint_t unsignedType;                  \
     typedef typename std::atomic<unsignedType> atomicType;                     \
+    LOMP_ASSERT(sizeof(unsignedType) == sizeof(atomicType));                   \
     typedef bitRep<type> sharedBits;                                           \
     atomicType * t = (atomicType *)target;                                     \
                                                                                \

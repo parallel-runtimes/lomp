@@ -333,9 +333,9 @@ void InvocationInfo::runLLVM(void * GTid, void * LTid) const {
 // that is passed through as a pointer argument. So, we need not worry about
 // the actual ABI and how many arguments are passed in registers or passed as
 // in-memory arguments.
-  void InvocationInfo::runGNU(void *, // GTid
-                              void *  // LTid
-    ) const {
+void InvocationInfo::runGNU(void *, // GTid
+                            void *  // LTid
+) const {
   // Increment the number of executing tasks once, as each thread executes an
   // implicit task for the parallel region.
   auto thread = Thread::getCurrentThread();

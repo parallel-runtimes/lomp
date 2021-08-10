@@ -391,26 +391,25 @@ void GOMP_barrier(void) {
 
 void GOMP_task(void (*thunk)(void *), void * data,
                void (*copyfunc)(void *, void *), long argsz, long argaln,
-               bool cond, unsigned flags,
-               void ** dependences) {
+               bool cond, unsigned flags, void ** dependences) {
   debug_enter();
 
   // Check for things we don't yet support and abort if they're used.
   if (copyfunc) {
-    lomp::fatalError(
-        "The LOMP implementation of GOMP_task does not yet support copy functors.");
+    lomp::fatalError("The LOMP implementation of GOMP_task does not yet "
+                     "support copy functors.");
   }
   if (argaln) {
-    lomp::fatalError(
-        "The LOMP implementation of GOMP_task does not yet support argument alignment.");
+    lomp::fatalError("The LOMP implementation of GOMP_task does not yet "
+                     "support argument alignment.");
   }
   if (flags) {
-    lomp::fatalError(
-        "The LOMP implementation of GOMP_task does not yet support the flags argument.");
+    lomp::fatalError("The LOMP implementation of GOMP_task does not yet "
+                     "support the flags argument.");
   }
   if (dependences) {
-    lomp::fatalError(
-        "The LOMP implementation of GOMP_task does not yet support dependences.");
+    lomp::fatalError("The LOMP implementation of GOMP_task does not yet "
+                     "support dependences.");
   }
 
   // Use the LLVM-style task allocator to create some memory for the task and
@@ -483,7 +482,8 @@ void GOMP_loop_end() {
 void GOMP_loop_maybe_nonmonotonic_runtime_start() {
   debug_enter();
 #if (LOMP_WARN_API_STUBS)
-#warning "Function GOMP_loop_maybe_nonmonotonic_runtime_start() is not yet implemented."
+#warning                                                                       \
+    "Function GOMP_loop_maybe_nonmonotonic_runtime_start() is not yet implemented."
 #endif
   lomp::fatalError("The runtime entrypoint %s (at %s:%d) is not implemented.",
                    __FUNCTION__, __FILE__, __LINE__);
@@ -493,7 +493,8 @@ void GOMP_loop_maybe_nonmonotonic_runtime_start() {
 void GOMP_loop_maybe_nonmonotonic_runtime_next() {
   debug_enter();
 #if (LOMP_WARN_API_STUBS)
-#warning "Function GOMP_loop_maybe_nonmonotonic_runtime_next() is not yet implemented."
+#warning                                                                       \
+    "Function GOMP_loop_maybe_nonmonotonic_runtime_next() is not yet implemented."
 #endif
   lomp::fatalError("The runtime entrypoint %s (at %s:%d) is not implemented.",
                    __FUNCTION__, __FILE__, __LINE__);
