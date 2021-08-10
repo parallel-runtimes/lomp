@@ -248,8 +248,11 @@ int32_t __kmpc_omp_task(ident_t *, // where
 
 void __kmpc_omp_task_begin_if0(ident_t *, // where
                                int32_t,   // gtid
-                               void *) {  // new_task 
-  // Do nothing, as the task is invoked in the compiler-generated code.
+                               void * new_task) {
+  auto closure =
+      reinterpret_cast<lomp::Tasking::TaskDescriptor::Closure *>(new_task);
+  lomp::Tasking::TaskDescriptor * task = lomp::Tasking::ClosureToTask(closure);
+  PrepareTask(task);
 }
 
 void __kmpc_omp_task_complete_if0(ident_t *, // where
@@ -260,7 +263,6 @@ void __kmpc_omp_task_complete_if0(ident_t *, // where
   auto closure =
       reinterpret_cast<lomp::Tasking::TaskDescriptor::Closure *>(new_task);
   lomp::Tasking::TaskDescriptor * task = lomp::Tasking::ClosureToTask(closure);
-  // TODO: do we need to call PrepareTask here, too?
   lomp::Tasking::CompleteTask(task);
   lomp::Tasking::FreeTaskAndAncestors(task);
 }
@@ -393,8 +395,6 @@ void GOMP_task(void (*thunk)(void *), void * data,
         "The GOMP_task entrypoint does not support copy functors.");
   }
 
-  printf("flags=%d, cond=%d\n", flags, cond);
-
   // Use the LLVM-style task allocator to create some memory for the task and
   // its descriptor.  To avoid some code duplication, we are faking the thunk
   // pointer by casting it to an LLVM-style thunk pointer (which does not make a
@@ -413,17 +413,14 @@ void GOMP_task(void (*thunk)(void *), void * data,
 
   if (cond) {
     // Submit the task for execution using the LLVM-style task API.
-    printf("DEFER!\n");
     __kmpc_omp_task(nullptr, 0, closure);
   }
   else {
-    printf("IMMEDIATE!\n");
     // This is an if(0) task, so execute it in place, do not defer it.
     __kmpc_omp_task_begin_if0(nullptr, 0, closure);
     auto task = ClosureToTask(closure);
     lomp::Tasking::PrepareTask(task);
     lomp::Tasking::InvokeTask(task);
-    // __kmpc_omp_task_complete_if0(nullptr, 0, closure);
   }
 
   debug_leave();
