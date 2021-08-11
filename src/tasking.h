@@ -12,7 +12,11 @@
 #include <atomic>
 #include <cstdint>
 
-namespace lomp::Tasking {
+namespace lomp {
+
+class Thread;
+
+namespace Tasking {
 
 typedef void (*GnuThunkPointer)(void *);
 typedef int32_t (*ThunkPointer)(int32_t, void *);
@@ -41,6 +45,7 @@ struct TaskDescriptor {
     /* task descriptor for task management */
     Flags flags;
     TaskDescriptor * parent; /* pointer to the parent that created this task */
+    Thread * thread; /* pointer to the thread that create the task */
     std::atomic<int>
         childTasks; /* number of child tasks to (potentially) wait for */
     Taskgroup * taskgroup;
@@ -83,6 +88,8 @@ bool TaskWait();
 void TaskgroupBegin();
 void TaskgroupEnd();
 
-} // namespace lomp::Tasking
+} // namespace Tasking
+
+} // namespace lomp
 
 #endif

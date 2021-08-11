@@ -9,6 +9,7 @@
 #include <cstring>
 #include <ctime>
 #include <cstdio>
+#include <cassert>
 
 #include <algorithm>
 #include <array>
@@ -382,6 +383,7 @@ void InitializeTaskDescriptor(TaskDescriptor * task, size_t sizeOfTaskClosure,
   // initialize the the child-parent relationship
   task->metadata.flags = TaskDescriptor::Flags::Created;
   task->metadata.childTasks.store(0);
+  task->metadata.thread = thread;
   task->metadata.parent = thread->getCurrentTask();
   task->metadata.taskgroup = taskgroup;
 
@@ -399,21 +401,25 @@ void PrepareTask(TaskDescriptor * task) {
 
   // Count this task as being created for determining how many tasks are left to
   // be executed.
+  assert(team->activeTasks.load() >= 0);
   ++team->activeTasks;
 
   // Record that a new child has been created and increment the parent's child
   // counter (or in the thread descriptor if the task is coming from an implicit
   // task).
   if (task->metadata.parent) {
+    assert(task->metadata.parent->metadata.childTasks.load() >= 0);
     task->metadata.parent->metadata.childTasks++;
   }
   else {
-    thread->childTasks++;
+    assert(task->metadata.thread->childTasks.load() >= 0);
+    task->metadata.thread->childTasks++;
   }
  
   // Now we have to also record this task as active for a potentially active
   // taskgroup
   if (auto taskgroup = task->metadata.taskgroup; taskgroup) {
+    assert(taskgroup->activeTasks.load() >= 0);
     taskgroup->activeTasks++;
   }
 }
@@ -520,13 +526,11 @@ void InvokeTask(TaskDescriptor * task) {
 
   // Restore the previous reference to the previously executing task.
   thread->setCurrentTask(previous);
-
-  // Decrement counter of tasks in flight
-  --team->activeTasks;
 }
 
 void CompleteTask(TaskDescriptor * task) {
   auto thread = Thread::getCurrentThread();
+  auto team = thread->getTeam();
 
   task->metadata.flags = TaskDescriptor::Flags::Completed;
 
@@ -537,16 +541,23 @@ void CompleteTask(TaskDescriptor * task) {
     printf("dec cntr: parent=%p\n", task->metadata.parent);
 #endif
     task->metadata.parent->metadata.childTasks--;
+    assert(task->metadata.parent->metadata.childTasks.load() >= 0);
   }
   else {
-    thread->childTasks--;
+    task->metadata.thread->childTasks--;
+    assert(task->metadata.thread->childTasks.load() >= 0);
   }
 
   // Now we have to also record this task as being no longer active for a
   // potentially active taskgroup
   if (auto taskgroup = task->metadata.taskgroup; taskgroup) {
     --taskgroup->activeTasks;
+    assert(taskgroup->activeTasks.load() >= 0);
   }
+
+  // And, finally, record the task as being done for the parallel region
+  --team->activeTasks;
+  assert(team->activeTasks.load() >= 0);
 }
 
 #if USE_RANDOM_STEALING
