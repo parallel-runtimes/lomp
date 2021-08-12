@@ -33,7 +33,7 @@ option(LOMP_MICROBM_WITH_LOMP "Use LOMP for micro-benchmarks" OFF)
 option(LOMP_BUILD_MICROBM "Build micro-benchmarks" ON)
 option(LOMP_BUILD_EXAMPLES "Build example programs" ON)
 # Assume aarch64 v8.1a architecture by default.
-SET(LOMP_ARM64_ARCHITECTURE "armv8.1a" CACHE STRING "Detailed aarch64 architecture passed to -march=")
+SET(LOMP_ARM64_ARCHITECTURE "armv8.1-a" CACHE STRING "Detailed aarch64 architecture passed to -march=")
 include(CheckCXXCompilerFlag)
 
 # look for Git
