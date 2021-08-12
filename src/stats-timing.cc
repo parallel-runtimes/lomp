@@ -141,17 +141,25 @@ std::string CPUModelName() {
     return LOMP_TARGET_ARCH_NAME;
   }
 #endif /* Operating systems */
-  // Try the CPU ID register; we might be able to work it out from there.
-  uint32_t el1Reg = getArmID();
+#if (LOMP_TARGET_ARCH_AARCH64)  
+  // Try the AArch64 MIDR_EL1 register; we might be able to work it out from there.
+  // https://developer.arm.com/documentation/ddi0595/2020-12/AArch64-Registers/MIDR-EL1--Main-ID-Register
   struct EL1 {
     unsigned int revision : 4;
     unsigned int partNum : 12;
     unsigned int architecture : 4;
     unsigned int variant : 4;
     unsigned int implementer : 8;
-  } el1 = *(EL1 *)&el1Reg;
-  uint32_t implementer = el1.implementer;
-  uint32_t partNum = el1.partNum;
+  };
+  // Use a union to avoid undefined behaviour complaints about
+  // aliasing that come from pointer casts.
+  union {
+    uint32_t rawReg;
+    EL1 el1Reg;
+  } el1;
+  el1.rawReg = getArmID();
+  uint32_t implementer = el1.el1Reg.implementer;
+  uint32_t partNum = el1.el1Reg.partNum;
   std::string name;
   // We only know about a few things here. More code is potentially needed.
   switch (implementer) {
@@ -170,6 +178,14 @@ std::string CPUModelName() {
   default:
     return LOMP_TARGET_ARCH_NAME " Unknown implementer";
   }
+#else
+  // Add architecture specific code here if you can find appropriate things to use.
+  // On Arm32, there are some registers, but they're not accessible to unprivileged code.
+  // https://developer.arm.com/documentation/ddi0406/b/System-Level-Architecture/The-CPUID-Identification-Scheme/Introduction-to-the-CPUID-scheme/General-features-of-the-CPUID-registers?lang=en
+
+  // RISC-V may also have some trickery; Google Is Your Friend...
+  return LOMP_TARGET_ARCH_NAME;
+#endif  
 }
 #endif /* LOMP_TARGET_ARCH_X86_64 */
 } // namespace Target

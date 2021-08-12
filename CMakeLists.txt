@@ -47,6 +47,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_definitions(LOMP_GCC_BUILD=1)
+    add_link_options(-latomic)
 else()
     message(FATAL_ERROR
             "Unknown compiler: " ${CMAKE_CXX_COMPILER_ID} ".  Please use clang or Intel compilers instead.")
