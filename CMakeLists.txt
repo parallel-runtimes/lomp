@@ -115,6 +115,17 @@ macro(add_mcx16_flag target)
     endif()
 endmacro(add_mcx16_flag)
 
+# Find libatomic and and define macro to add where we need libatomic
+find_library(LOMP_LIBATOMIC NAMES libatomic${LOMP_SHAREDLIB_SUFFIX}
+                                  libatomic${LOMP_SHAREDLIB_SUFFIX}.1)
+message(STATUS "Found libatomic: ${LOMP_LIBATOMIC}")
+macro(add_libatomic target)
+    if (LOMP_LIBATOMIC)
+        target_compile_definitions(${target} PRIVATE LOMP_HAVE_LIBATOMIC=1)
+        target_link_libraries(${target} ${LOMP_LIBATOMIC})
+    endif()
+endmacro(add_libatomic)
+
 # Determine Git commit ID
 if(Git_FOUND)
     execute_process (
