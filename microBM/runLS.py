@@ -31,6 +31,7 @@ runDesc = BMutils.runDescription(
      # "P": ("0","-1"),
      # "R": ("0", "-1"),
      # "S": ("0","-1"),
+     "V": ("0","-1"),        
     },
     # Output file name prefix
     "LS",
@@ -38,6 +39,6 @@ runDesc = BMutils.runDescription(
 # None => all :-)
 tests = None
 # Choose a subset of tests to run here.
-tests = ("P",)
+tests = ("V",)
 
 BMutils.runBM(runDesc, tests)
