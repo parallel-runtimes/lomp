@@ -560,14 +560,6 @@ void CompleteTask(TaskDescriptor * task) {
   assert(team->activeTasks.load() >= 0);
 }
 
-#if USE_RANDOM_STEALING
-size_t GetRandomNumber(size_t min, size_t max) {
-  static thread_local std::mt19937 generator(clock());
-  std::uniform_int_distribution<size_t> distribution(min, max);
-  return distribution(generator);
-}
-#endif
-
 #if USE_MULTI_TASK_POOL
 #if USE_ROUND_ROBIN_STEALING
 struct RoundRobinStealTask {
