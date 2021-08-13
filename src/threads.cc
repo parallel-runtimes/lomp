@@ -372,12 +372,12 @@ Barrier * Barrier::newBarrier(int NumThreads) {
     auto barrierDesc = Barrier::findBarrier(barrierName);
 
     if (!barrierDesc) {
-      errPrintf("LOMP: Cannot find barrier '%s'!\n", barrierName.c_str());
+      errPrintf("Cannot find barrier '%s'!\n", barrierName.c_str());
       Barrier::printBarriers();
       fatalError("Need a barrier!");
     }
     if (envPresent) {
-      errPrintf("LOMP: Using user selected barrier %s [%s]\n",
+      errPrintf("Using user selected barrier %s [%s]\n",
                 barrierDesc->name, barrierDesc->getFullName());
     }
     debug(Debug::Info, "Using barrier %s [%s]", barrierDesc->name,

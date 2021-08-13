@@ -1135,17 +1135,17 @@ public:
   }
 
   void wakeUp(int, const InvocationInfo *) {
-    fatalError("distributedLogBarrier::wakeUp called, but it's a single phase "
-               "barrier...");
+    fatalError("%s::wakeUp called, but it's a single phase "
+               "barrier...", name());
   }
   bool checkIn(int) {
-    fatalError("distributedLogBarrier::checkIn called, but it's a single phase "
-               "barrier...");
+    fatalError("%s::checkIn called, but it's a single phase "
+               "barrier...",name());
   }
   InvocationInfo const * checkOut(bool, int) {
     fatalError(
-        "distributedLogBarrier::checkOut called, but it's a single phase "
-        "barrier...");
+        "%s:checkOut called, but it's a single phase "
+        "barrier...",name());
   }
 };
 
