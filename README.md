@@ -229,7 +229,7 @@ that, remember to reset `LD_LIBRARY_PATH`.
 
 The following options can be set using the `cmake` command line interface:
 
-* `-G Ninja`: Sets the build system to Ninja (the default is GNU Make)
+* `-G Ninja`: Sets the build system to Ninja (the default is GNU Make).
 * `-DCMAKE_C_COMPILER=xyz`: Set the C compiler to be `xyz`, the GNU Compiler
   Collection (GCC) is the default on most systems, but we want `clang`. (If you
   have `clang` in your path you can use `-DCMAKE_C_COMPILER=clang`).

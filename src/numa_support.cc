@@ -88,7 +88,7 @@ void InitializeNumaSupport() {
       NumaDomainForCore.push_back(0);
       CoresInDomain.push_back(c);
     }
-    CoresPerNumaDomain.push_back(CoresInDomain);    
+    CoresPerNumaDomain.push_back(CoresInDomain);
 
     // Resize the core-to-thread vector that we use to store stuff
     CoreToThread.resize(NumberOfCores);

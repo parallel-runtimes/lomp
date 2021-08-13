@@ -80,7 +80,7 @@ class ThreadTeam {
   std::atomic<uint64_t> NextSingle;
 
 public:
-  std::atomic<size_t> activeTasks;
+  std::atomic<ssize_t> activeTasks;
 
   ThreadTeam(int ThreadCount);
   auto getBarrier() const {
