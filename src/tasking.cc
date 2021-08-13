@@ -746,7 +746,7 @@ bool TaskWait() {
   }
   else {
 #if DEBUG_TASKING
-    printf("taskwait/implicit: thread=%p, childTasks=%d\n", thread,
+    printf("taskwait/implicit: thread=%p, childTasks=%ld\n", thread,
            thread->childTasks.load());
 #endif
 
@@ -757,7 +757,7 @@ bool TaskWait() {
       // to execute to not waste cycles by just spin waiting.
       ScheduleTask();
 #if DEBUG_TASKING
-      printf("taskwait/implicit: thread=%p, childTasks=%d\n", thread,
+      printf("taskwait/implicit: thread=%p, childTasks=%ld\n", thread,
              thread->childTasks.load());
 #endif
     }
@@ -784,7 +784,7 @@ void TaskgroupEnd() {
 
 #if DEBUG_TASKING
   auto id = thread->getLocalId();
-  printf("thread %d, taskgroup %p: enter wait for %d child tasks\n", id,
+  printf("thread %d, taskgroup %p: enter wait for %ld child tasks\n", id,
          taskgroup, taskgroup->activeTasks.load());
 #endif
   // When this call happens, we can be sure that a task group is active, or the

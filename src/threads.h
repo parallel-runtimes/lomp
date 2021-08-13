@@ -156,7 +156,7 @@ class CACHE_ALIGNED Thread {
 public:
   /* Todo? use accessors for this, so it can be private */
   // counter to be used for taskwaits and implicit tasks.
-  std::atomic<int> childTasks;
+  std::atomic<ssize_t> childTasks;
 
 private:
   // Dynamic loop scheduling information
