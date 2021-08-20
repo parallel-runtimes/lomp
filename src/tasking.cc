@@ -560,18 +560,6 @@ void CompleteTask(TaskDescriptor * task) {
   assert(team->activeTasks.load() >= 0);
 }
 
-#if USE_RANDOM_STEALING
-size_t GetRandomNumber(size_t min, size_t max) {
-#if LOMP_SERIAL
-  static std::mt19937 generator(clock());
-#else
-  static thread_local std::mt19937 generator(clock());
-#endif
-  std::uniform_int_distribution<size_t> distribution(min, max);
-  return distribution(generator);
-}
-#endif
-
 #if USE_MULTI_TASK_POOL
 #if USE_ROUND_ROBIN_STEALING
 struct RoundRobinStealTask {
@@ -758,7 +746,7 @@ bool TaskWait() {
   }
   else {
 #if DEBUG_TASKING
-    printf("taskwait/implicit: thread=%p, childTasks=%d\n", thread,
+    printf("taskwait/implicit: thread=%p, childTasks=%ld\n", thread,
            thread->childTasks.load());
 #endif
 
@@ -769,7 +757,7 @@ bool TaskWait() {
       // to execute to not waste cycles by just spin waiting.
       ScheduleTask();
 #if DEBUG_TASKING
-      printf("taskwait/implicit: thread=%p, childTasks=%d\n", thread,
+      printf("taskwait/implicit: thread=%p, childTasks=%ld\n", thread,
              thread->childTasks.load());
 #endif
     }
@@ -796,7 +784,7 @@ void TaskgroupEnd() {
 
 #if DEBUG_TASKING
   auto id = thread->getLocalId();
-  printf("thread %d, taskgroup %p: enter wait for %d child tasks\n", id,
+  printf("thread %d, taskgroup %p: enter wait for %ld child tasks\n", id,
          taskgroup, taskgroup->activeTasks.load());
 #endif
   // When this call happens, we can be sure that a task group is active, or the
