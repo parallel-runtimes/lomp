@@ -9,7 +9,8 @@
 # Source files for the runtime library
 add_library(omp SHARED atomics.cc barrier_impl.cc entrypoints.cc environment.cc
                        globals.cc locks.cc loops.cc numa_support.cc
-                       stats-timing.cc tasking.cc threads.cc util.cc version.h)
+                       stats-timing.cc tasking.cc threads.cc util.cc
+                       version.h.in)
 set_target_properties(omp PROPERTIES VERSION 0.1 SOVERSION 1)
 
 # Add the current build directory as a include directory
@@ -48,15 +49,6 @@ if (${LOMP_TARGET_OS} STREQUAL "Darwin")
 endif()
 message(STATUS "Shared-library extension: ${LOMP_SHAREDLIB_SUFFIX}")
 
-# Find libatomic and link against it if we did
-find_library(LOMP_LIBATOMIC NAMES libatomic${LOMP_SHAREDLIB_SUFFIX}
-                                  libatomic${LOMP_SHAREDLIB_SUFFIX}.1)
-message(STATUS "Found libatomic: ${LOMP_LIBATOMIC}")
-if (LOMP_LIBATOMIC)
-    target_compile_definitions(omp PRIVATE LOMP_HAVE_LIBATOMIC=1)
-    target_link_libraries(omp ${LOMP_LIBATOMIC})
-endif()
-
 # Find libnuma and link against it if we did
 find_library(LOMP_LIBNUMA libnuma${LOMP_SHAREDLIB_SUFFIX})
 message(STATUS "Found libnuma: ${LOMP_LIBNUMA}")
@@ -64,6 +56,9 @@ if(LOMP_LIBNUMA)
     target_compile_definitions(omp PRIVATE LOMP_HAVE_LIBNUMA=1)
     target_link_libraries(omp ${LOMP_LIBNUMA})
 endif()
+
+# Also link with libatomic if it's available
+add_libatomic(omp)
 
 # store some metadata about the build in version.h
 get_target_property(LOMP_COMPILE_OPTIONS omp COMPILE_OPTIONS)

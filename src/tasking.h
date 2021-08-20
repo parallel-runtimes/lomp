@@ -31,7 +31,7 @@ typedef union {
 struct Taskgroup {
   Taskgroup(Taskgroup * outer_) : outer(outer_), activeTasks(0) {}
   Taskgroup * outer;
-  std::atomic<int> activeTasks;
+  std::atomic<ssize_t> activeTasks;
 };
 
 struct TaskDescriptor {
