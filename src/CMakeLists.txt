@@ -9,7 +9,8 @@
 # Source files for the runtime library
 add_library(omp SHARED atomics.cc barrier_impl.cc entrypoints.cc environment.cc
                        globals.cc locks.cc loops.cc numa_support.cc
-                       stats-timing.cc tasking.cc threads.cc util.cc version.h)
+                       stats-timing.cc tasking.cc threads.cc util.cc
+                       version.h.in)
 set_target_properties(omp PROPERTIES VERSION 0.1 SOVERSION 1)
 
 # Add the current build directory as a include directory
