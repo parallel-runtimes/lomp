@@ -268,7 +268,8 @@ The following options can be set using the `cmake` command line interface:
   processors; the default is `armv8.1`, use `armv8-a` for Raspberry Pi 3 and 4,
   or `armv7-a` for Raspberry Pi 2.
 
-### Environment Variables
+
+## Environment Variables
 
 The LOMP runtime library supports various environment variables that control
 its behavior:
@@ -316,7 +317,7 @@ of the debug tags, so as only to print information from the subsystem of
 interest, so the values for `LOMP_DEBUG` may change over time.
 
 
-### Micro-Benchmarks
+## Micro-Benchmarks
 
 The micro-benchmarks are in the `microBM` directory.  These were used to
 measure hardware properties shown in the book.  You can use them to measure the
