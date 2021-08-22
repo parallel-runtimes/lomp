@@ -117,7 +117,7 @@ are not yet implemented since there is no compiler support for them yet.
 If you would like to contribute any features to LOMP, please see below.
 
 
-## How to Build
+## How to Build (and Install)
 
 Here are some, hopefully useful, remarks about how you can setup LOMP on your
 system.  The instructions come without any warranty, and may be wrong, or
@@ -238,6 +238,8 @@ The following options can be set using the `cmake` command line interface:
   your path you can use `-DCMAKE_CXX_COMPILER=clang++`.)
 * `-DLOMP_BUILD_EXAMPLES=[on|off]`: `on` builds the examples, `off` does not.
   The default is `on`.
+* `-DCMAKE_INSTALL_PREFIX=<path>`: Define the path that will be used to install
+  LOMP.  The default is `/usr/local` on Linux* systems.
 * `-DLOMP_BUILD_MICROBM=[on|off]`: `on` builds the micro-benchmarks,
   `off` does not, the default is `on`.
 * `-DLOMP_MICROBM_WITH_LOMP=[on|off]`: `on` links the micro-benchmarks with
@@ -268,6 +270,12 @@ The following options can be set using the `cmake` command line interface:
   or `armv7-a` for Raspberry Pi 2.
 
 ### Environment Variables
+## Installing LOMP
+
+LOMP supports to be installed using the `install` target.  The location is determined via the `-DCMAKE_INSTALL_PREFIX=<path>` configuration option for CMake.  After a successful build, the following will install LOMP
+  * with GNU Make: `make install`
+  * with Ninja: `ninja install`
+
 
 The LOMP runtime library supports various environment variables that control
 its behavior:
