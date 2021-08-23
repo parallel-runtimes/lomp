@@ -1,4 +1,4 @@
-//===-- barrier_implementations.cc - The barrier zoo -------*- C++ -*-===//
+//===-- barrier_impl.cc - The barrier zoo -------*- C++ -*-===//
 //
 // Part of the LOMP project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -864,7 +864,7 @@ public:
     if (CheckedIn.checkIn(me)) {
       // I am the master thread, so I may need to wait for everyone to arrive!
       // (In a dynamic tree we don't need to do anything, since the root
-      // thread won't complete its checkin until all threads have arrived.
+      // thread won't complete its checkin until all threads have arrived).
       debug(Debug::Barriers + 1, "%d: root waiting for everyone to get here",
             me);
       CheckedIn.wait();
