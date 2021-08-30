@@ -1,12 +1,12 @@
 # Version "next"
 * Documentation: added `critical` construct to README.md
-* Add entrypoints for tasks with `if(0)` clause.
-* Update the micro-benchmarks to alow measurement with each core
+* Feature: Add entrypoints for tasks with `if(0)` clause.
+* Feature: Update the micro-benchmarks to allow measurement with each core
   active in the loadsStores benchmark, and allocate the relevant
   memory in the active thread.
-* Add the ability to read multiple experiments from a single file, and
+* Feature: Add the ability to read multiple experiments from a single file, and
   to plot heatmaps to plot.py
-* Improve the detection of some Arm architecture cores.
+* Feature: Improve the detection of some Arm architecture cores.
 * Feature: provide target to install LOMP
 
 # Version 0.1
