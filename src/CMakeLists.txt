@@ -74,3 +74,6 @@ configure_file(version.h.in version.h)
 
 # Enable a compilation guard that enables us to tell if we're in the RTL
 target_compile_definitions(omp PRIVATE LOMP_BUILD_RTL=1)
+
+# installation target
+install(TARGETS omp)
