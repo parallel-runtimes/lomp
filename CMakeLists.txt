@@ -151,7 +151,6 @@ message(STATUS "Build shared-library version of LOMP: " ${LOMP_SHARED_LIB})
 
 # set the CMake flags for static vs shared libraries
 set(BUILD_SHARED_LIB ${LOMP_SHARED_LIB})
-message(STATUS "Bla: ${BUILD_SHARED_LIB}")
 
 # Add our own include directory that contains the omp.h header file
 include_directories(./include)
