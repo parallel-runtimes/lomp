@@ -60,14 +60,19 @@ endif()
 # Also link with libatomic if it's available
 add_libatomic(omp)
 
-# store some metadata about the build in version.h
+# Pass information along to know if build is building a serial LOMP version
+if (LOMP_SERIAL)
+    target_compile_definitions(omp PRIVATE LOMP_SERIAL=1)
+endif()
+
+# Store some metadata about the build in version.h
 get_target_property(LOMP_COMPILE_OPTIONS omp COMPILE_OPTIONS)
 get_target_property(LOMP_COMPILE_DEFINITIONS omp COMPILE_DEFINITIONS)
 get_target_property(LOMP_VERSION omp VERSION)
 get_target_property(LOMP_SOVERSION omp SOVERSION)
 configure_file(version.h.in version.h)
 
-# enable a compilation guard that enables us to tell if we're in the RTL
+# Enable a compilation guard that enables us to tell if we're in the RTL
 target_compile_definitions(omp PRIVATE LOMP_BUILD_RTL=1)
 
 # installation target

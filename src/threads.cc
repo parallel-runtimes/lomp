@@ -17,7 +17,11 @@
 #include "locks.h"
 
 namespace lomp {
+#if LOMP_SERIAL
+Thread * Thread::MyThread;
+#else
 thread_local Thread * Thread::MyThread;
+#endif
 
 #if (LOMP_TARGET_LINUX)
 #include <sched.h>
@@ -53,12 +57,17 @@ static void forceAffinity(int me) {
 ThreadTeam::ThreadTeam(int NumThreads)
     : threadsCreated(0), Parallel(false), RuntimeLoopSchedule(kmp_sch_static),
       NextSingle(0), activeTasks(0) {
+#if LOMP_SERIAL
+  // The serial library uses a single thread only.
+  NumThreads = 1;
+#else
   // If the user has not requested a specific number of threads,
   // use a number that matches the available hardware.
   // We assume that std::thread handle affinity masks correctly...
   if (NumThreads == 0) {
     NumThreads = std::thread::hardware_concurrency();
   }
+#endif
   // Remember the number of threads.
   NThreads = NumThreads;
   debug(Debug::Threads, "Total threads %d", NumThreads);

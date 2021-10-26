@@ -1,3 +1,6 @@
+# Version "next"
+* Feature: Implement a serial version of LOMP runtime.
+
 # Version 0.2
 * Feature: Add entrypoints for tasks with `if(0)` clause.
 * Feature: Update the micro-benchmarks to allow measurement with each core

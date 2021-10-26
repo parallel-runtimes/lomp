@@ -140,7 +140,11 @@ public:
 };
 
 class CACHE_ALIGNED Thread {
+#if LOMP_SERIAL
+  static Thread * MyThread; /* How we get here... */
+#else
   thread_local static Thread * MyThread; /* How we get here... */
+#endif
 
   // Current team to which this thread belongs.
   ThreadTeam * Team;
