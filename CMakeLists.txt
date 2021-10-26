@@ -33,6 +33,7 @@ option(LOMP_MICROBM_WITH_LOMP "Use LOMP for micro-benchmarks" OFF)
 option(LOMP_BUILD_MICROBM "Build micro-benchmarks" ON)
 option(LOMP_BUILD_EXAMPLES "Build example programs" ON)
 option(LOMP_SERIAL "Build a serial version of the LOMP library" OFF)
+option(LOMP_SHARED_LIB "Build a shared-library version of LOMP" ON)
 
 # Assume aarch64 v8.1a architecture by default.
 set(LOMP_ARM64_ARCHITECTURE "armv8.1a" CACHE STRING "Detailed aarch64 architecture passed to -march=")
@@ -146,6 +147,11 @@ message(STATUS "Warn about missing API entry points (LOMP_WARN_API_STUBS): ${LOM
 message(STATUS "Warn about missing implementations for arch features (LOMP_WARN_ARCH_FEATURES): ${LOMP_WARN_ARCH_FEATURES}")
 message(STATUS "Build example programs: ${LOMP_BUILD_EXAMPLES}")
 message(STATUS "Build micro-benchmarks: ${LOMP_BUILD_MICROBM}")
+message(STATUS "Build shared-library version of LOMP: " ${LOMP_SHARED_LIB})
+
+# set the CMake flags for static vs shared libraries
+set(BUILD_SHARED_LIB ${LOMP_SHARED_LIB})
+message(STATUS "Bla: ${BUILD_SHARED_LIB}")
 
 # Add our own include directory that contains the omp.h header file
 include_directories(./include)
