@@ -241,6 +241,8 @@ The following options can be set using the `cmake` command line interface:
   all entrypoints, but with only one thread at runtime.  The default is `off`.
 * `-DLOMP_BUILD_EXAMPLES=[on|off]`: `on` builds the examples, `off` does not.
   The default is `on`.
+* `-DLOMP_SHARED_LIB=[on|off]`: `on` builds LOMP as a shared library, `off`
+  builds a static library instead.  The default is `on`.
 * `-DCMAKE_INSTALL_PREFIX=<path>`: Define the path that will be used to install
   LOMP.  The default is `/usr/local` on Linux* systems.
 * `-DLOMP_BUILD_MICROBM=[on|off]`: `on` builds the micro-benchmarks,
