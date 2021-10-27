@@ -15,8 +15,8 @@
 #ifndef TARGET_H_INCLUDED
 #define TARGET_H_INCLUDED
 
-#include <stdlib.h>
-#include <stdint.h>
+#include <cstdlib>
+#include <cstdint>
 
 #include <string>
 #include <chrono>

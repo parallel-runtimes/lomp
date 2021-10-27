@@ -71,7 +71,7 @@ for shared-memory multi-threading.  Supported OpenMP features are
 * the `critical` construct;
 * the `flush` construct;
 * the `task` construct, including the data-sharing clauses `shared`, `private`,
-  and `firstprivate`;
+  `firstprivate`, and `if`;
 * the `taskwait` construct; and
 * the `taskgroup` construct.
 
@@ -106,18 +106,19 @@ possibly incomplete, list is:
 * the [`teams`](https://www.openmp.org/spec-html/5.1/openmpse15.html#x62-620002.7)
   and
   [`distribute`](https://www.openmp.org/spec-html/5.1/openmpsu50.html#x75-800002.11.6.1) constructs.
-* the [cancellation constructs](https://www.openmp.org/spec-html/5.1/openmpse28.html#x144-1560002.20);
+* the [cancellation](https://www.openmp.org/spec-html/5.1/openmpse28.html#x144-1560002.20) constructs;
 * offloading to accelerator devices, such as GPUs; and
 * probably other things which we haven't noticed!
 
 The runtime is also, of course, limited in the language it can support
-by the compiler.  There are therefore some OpenMP 5.1 features which
-are not yet implemented since there is no compiler support for them yet.
+by the compiler.  There are therefore some OpenMP API version 5.1 features
+which are not yet implemented since there is no compiler support for them
+yet.
 
 If you would like to contribute any features to LOMP, please see below.
 
 
-## How to Build
+## How to Build (and Install)
 
 Here are some, hopefully useful, remarks about how you can setup LOMP on your
 system.  The instructions come without any warranty, and may be wrong, or
@@ -236,18 +237,23 @@ The following options can be set using the `cmake` command line interface:
 * `-DCMAKE_CXX_COMPILER=xyz`: Set the C++ compiler to be `xyz`, GCC's `g++` is
   the default on most systems, but we want `clang++`. (If you have `clang++` in
   your path you can use `-DCMAKE_CXX_COMPILER=clang++`.)
+* `-DLOMP_SERIAL=[on|off]`: `on` builds a serial version of the library with
+  all entrypoints, but with only one thread at runtime.  The default is `off`.
 * `-DLOMP_BUILD_EXAMPLES=[on|off]`: `on` builds the examples, `off` does not.
   The default is `on`.
+* `-DLOMP_SHARED_LIB=[on|off]`: `on` builds LOMP as a shared library, `off`
+  builds a static library instead.  The default is `on`.
+* `-DCMAKE_INSTALL_PREFIX=<path>`: Define the path that will be used to install
+  LOMP.  The default is `/usr/local` on Linux* systems.
 * `-DLOMP_BUILD_MICROBM=[on|off]`: `on` builds the micro-benchmarks,
   `off` does not, the default is `on`.
 * `-DLOMP_MICROBM_WITH_LOMP=[on|off]`: `on` links the micro-benchmarks with
   LOMP,  `off` links them  against the native OpenMP runtime of the compiler
-  being used; the  default is `off`.
+  being used; the default is `off`.
 * `-DCMAKE_BUILD_TYPE=[release|debug|relwithdebinfo]`: `release` builds with
   optimization; `debug` builds without optimization and with debug
   information; `relwithdebinfo` builds with optimizations and debug
-  information.
-  The default is `release`.
+  information.  The default is `release`.
 * `-DCMAKE_VERBOSE_MAKEFILE=[on|off]`: `on` shows compiler invocation, while
   `off` does not.  The default is `off`.
 * `-DLOMP_GNU_SUPPORT=[on|off]`: `on` builds GCC entry points for libgomp;
@@ -267,7 +273,14 @@ The following options can be set using the `cmake` command line interface:
   processors; the default is `armv8.1`, use `armv8-a` for Raspberry Pi 3 and 4,
   or `armv7-a` for Raspberry Pi 2.
 
-### Environment Variables
+## Installing LOMP
+
+LOMP supports to be installed using the `install` target.  The location is determined via the `-DCMAKE_INSTALL_PREFIX=<path>` configuration option for CMake.  After a successful build, the following will install LOMP
+  * with GNU Make: `make install`
+  * with Ninja: `ninja install`
+
+
+## Environment Variables
 
 The LOMP runtime library supports various environment variables that control
 its behavior:
@@ -315,7 +328,7 @@ of the debug tags, so as only to print information from the subsystem of
 interest, so the values for `LOMP_DEBUG` may change over time.
 
 
-### Micro-Benchmarks
+## Micro-Benchmarks
 
 The micro-benchmarks are in the `microBM` directory.  These were used to
 measure hardware properties shown in the book.  You can use them to measure the
