@@ -80,7 +80,7 @@ class ThreadTeam {
   std::atomic<uint64_t> NextSingle;
 
 public:
-  std::atomic<size_t> activeTasks;
+  std::atomic<ssize_t> activeTasks;
 
   ThreadTeam(int ThreadCount);
   auto getBarrier() const {
@@ -140,7 +140,11 @@ public:
 };
 
 class CACHE_ALIGNED Thread {
+#if LOMP_SERIAL
+  static Thread * MyThread; /* How we get here... */
+#else
   thread_local static Thread * MyThread; /* How we get here... */
+#endif
 
   // Current team to which this thread belongs.
   ThreadTeam * Team;
@@ -156,7 +160,7 @@ class CACHE_ALIGNED Thread {
 public:
   /* Todo? use accessors for this, so it can be private */
   // counter to be used for taskwaits and implicit tasks.
-  std::atomic<int> childTasks;
+  std::atomic<ssize_t> childTasks;
 
 private:
   // Dynamic loop scheduling information

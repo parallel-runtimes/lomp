@@ -19,6 +19,8 @@
 #include <atomic>
 #include <cstdint>
 #include <ctime>
+#include <cstdlib>
+
 // algorithm just for std::max
 #include <algorithm>
 
@@ -39,7 +41,8 @@ template <int alignment>
 class alignedAllocators {
   static void * doAllocation(std::size_t bytes) {
     void * res;
-    if (posix_memalign(&res, alignment, bytes) != 0) {
+    res = std::aligned_alloc(alignment, bytes);
+    if (!res) {
       fatalError("Aligned memory allocation failed.");
     }
     return res;

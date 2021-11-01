@@ -1,6 +1,17 @@
 # Version "next"
+* Feature: Implement a serial version of LOMP runtime.
+* Feature: Support static-library version of LOMP
+
+# Version 0.2
+* Feature: Add entrypoints for tasks with `if(0)` clause.
+* Feature: Update the micro-benchmarks to allow measurement with each core
+  active in the loadsStores benchmark, and allocate the relevant
+  memory in the active thread.
+* Feature: Add the ability to read multiple experiments from a single file, and
+  to plot heatmaps to plot.py
+* Feature: Improve the detection of some Arm architecture cores.
+* Feature: provide target to install LOMP
 * Documentation: added `critical` construct to README.md
-* Add entrypoints for tasks with `if(0)` clause.
 
 # Version 0.1
 * Initial release of the LOMP runtime library

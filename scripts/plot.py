@@ -214,7 +214,8 @@ def moveCommonToTitle(title, results):
                 # Add in a new line after a comma somewhere just after half the length
                 front = title[:maxWidth]
                 (middle, ignore, back) = title[maxWidth:].partition(", ")
-                title = front + middle + ",\n" + back
+                if len(back.strip()) != 0:
+                    title = front + middle + ",\n" + back
     for impl in implv:
         fields = [p.strip() for p in impl.split(",")]
         newName = ",".join(

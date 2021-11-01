@@ -322,12 +322,18 @@ void measureSharingFrom(lomp::statistic * stats, Operation op, bool modified,
 template <class ChannelClass>
 void measureRoundtripFrom(lomp::statistic * stats, int source) {
   int nThreads = omp_get_max_threads();
-  ChannelClass chan;
+  ChannelClass * chanp = nullptr;
   int const innerReps = 20;
 
 #pragma omp parallel
   {
     int me = omp_get_thread_num();
+    if (me == source) {
+      chanp = new ChannelClass;
+    }
+    #pragma omp barrier
+    ChannelClass * chan = chanp;
+
     for (int other = 0; other < nThreads; other++) {
       if (other == source)
         continue;
@@ -337,20 +343,22 @@ void measureRoundtripFrom(lomp::statistic * stats, int source) {
           lomp::BlockTimer bt(&stats[other]);
           // Do innerReps ping pongs
           for (int i = 0; i < innerReps; i++)
-            chan.release();
-          chan.waitFor(false); /* Need to see the final consumption */
+            chan->release();
+          chan->waitFor(false); /* Need to see the final consumption */
         }
         fprintf(stderr, ".");
       }
       else if (me == other) {
         for (int i = 0; i < NumSamples; i++) {
           for (int i = 0; i < innerReps; i++)
-            chan.wait();
+            chan->wait();
         }
       }
 #pragma omp barrier
     }
   }
+  delete chanp;
+  
   for (int i = 0; i < nThreads; i++)
     stats[i].scaleDown(
         2 * innerReps); /* We want half ping pong, hence we multiply by 2 */
@@ -520,27 +528,41 @@ static void computeClockOffset(int64_t * offsets) {
 //
 // We hope that cross thread clocks are synchronised, but that seems sometimes not
 // to be the case.
-void measureVisibility(lomp::statistic * stats) {
+void measureVisibilityFrom(lomp::statistic * stats,int from) {
   int nThreads = omp_get_max_threads();
   lomp::tsc_tick_count threadTimes[MAX_THREADS];
-  alignedUint32 broadcastLine;
+  alignedUint32 * broadcastLineP = nullptr;
   int64_t clockOffset[MAX_THREADS];
   computeClockOffset(&clockOffset[0]);
 
 #pragma omp parallel
   {
     int me = omp_get_thread_num();
-    int64_t myOffset = clockOffset[me];
-
-    for (int sharing = 1; sharing < nThreads; sharing++) {
-      for (int i = 0; i < NumSamples; i++) {
-        // Note that the use of barriers here may be
-        // non-standard...  We're matching different lexical
-        // barriers, so each thread here executes two barriers per
-        // iteration but they're not the same two.
-        if (me == 0) {
-          // Wait for all threads to be ready.
+    int logicalPos = (me + nThreads - from) % nThreads;
+    if (logicalPos == 0) {
+      broadcastLineP = new alignedUint32;
+      *broadcastLineP = 0;
+    }
 #pragma omp barrier
+    // Ensure that we're accessing this at only one level of indirection, not two.
+    auto bl = broadcastLineP;
+    
+    for (int sharing = 1; sharing < nThreads; sharing++) {
+      enum {
+        active,
+        polling,
+        nothing
+      } whatIDo = logicalPos == 0
+                      ? active
+                      : (logicalPos <= sharing
+                         ?  polling : nothing);
+      int64_t myOffset = clockOffset[me];
+
+      for (int i = 0; i < NumSamples; i++) {
+#pragma omp barrier
+        switch (whatIDo) {
+        case active:
+          // Wait for all threads to be ready.
           // Then wait a while so that all of the polling
           // threads have time to start polling after leaving
           // the barrier. (Adding another barrier won't help;
@@ -548,41 +570,47 @@ void measureVisibility(lomp::statistic * stats) {
           // itself).
           delay(5000);
           threadTimes[0] = lomp::tsc_tick_count::now();
-          broadcastLine.store(1);
-#pragma omp barrier
-          // Everyone has seen the write and progressed throught the next barrier.
-          // Reset the line for next time.
-          broadcastLine = 0;
-          // Work out the time we should save.
-          int64_t elapsed = longestInterval(threadTimes, sharing).getValue();
-          if (elapsed > 0)
-            stats[sharing].addSample(elapsed);
-        }
-        else if (me <= sharing) {
-#pragma omp barrier
-          while (broadcastLine == 0)
+          bl->store(1);
+          break;
+        case polling:
+          while (*bl == 0)
             ;
-          threadTimes[me] = lomp::tsc_tick_count(
-              lomp::tsc_tick_count::now().getValue() + myOffset);
-#pragma omp barrier
+          threadTimes[logicalPos] = lomp::tsc_tick_count(
+            lomp::tsc_tick_count::now().getValue() + myOffset);
+          break;
+        case nothing:
+          break;
         }
-        else {
 #pragma omp barrier
-#pragma omp barrier
+        switch (whatIDo) {
+        case active: 
+          {
+            // Everyone has seen the write.
+            // Reset the line for next time.
+            *bl = 0;
+            // Work out the time we should save.
+            int64_t elapsed = longestInterval(threadTimes, sharing).getValue();
+            if (elapsed > 0)
+              stats[sharing].addSample(elapsed);
+            break;
+          }  
+        case polling:
+        case nothing:
+          break;
         }
-      }
-      if (me == 0) {
+      } // for NumSamples
+      if (logicalPos == 0) {
         fprintf(stderr, ".");
       }
-    }
-  }
-
+    } // for sharing
+  } // parallel
   // The function operates on measurementArraySize lines, so we should scale down the time
   // to get that for a single operation.
   for (int i = 1; i < nThreads; i++) {
     stats[i].scaleDown(measurementArraySize);
   }
-
+  delete broadcastLineP;
+  
   fprintf(stderr, "\n");
 }
 
@@ -611,16 +639,17 @@ static void printHelp() {
       "                array in thread 0 (default is to allocate in the "
       "thread\n"
       "                doing the measurement)\n"
-      "                If a second argument is present measurements are made "
-      "from there; if it is <0 all positions are measured.\n"
-
+      "                If a second argument is present measurements are made\n"
+      "                from there; if it is <0 all positions are measured.\n"
       "S[rwa][mu] [n]  -- Sharing: op is read/write/atomic depending on second "
       "letter,\n"
       "                line state [modified/unmodified] is determined by the "
       "third\n"
       "                If a second argument is present measurements are made "
       "from there; if it is <0 all positions are measured.\n"
-      "V            -- Visibility\n"
+      "V [n]           -- Visibility\n"
+      "                If an argument is present measurements are made from there;\n"
+      "                if it is <0; all positions are measured.\n"
       "\n"
       "In memory we're looking at the time to perform read/write to a line not "
       "in the cache\n"
@@ -936,15 +965,50 @@ int main(int argc, char ** argv) {
     }
   } break;
 
-  case 'V':
-    measureVisibility(stats);
-    printf("Visibility\n"
-           "%s\n"
-           "# %s\n"
-           "Pollers,  Samples,       Min,      Mean,       Max,        SD\n",
-           targetName.c_str(), getDateTime().c_str());
-    break;
+  case 'V': {
+    int from = 0;
+    if (argc > 2)
+      from = atoi(argv[2]);
 
+    if (from < 0) {
+      // Run all of them...
+      NumSamples = NumSamples/4;
+      for (from = 0; from < nThreads; from++) {
+        measureVisibilityFrom(stats, from);
+
+        // Convert to times
+        for (int i = 1; i < nThreads; i++)
+          stats[i].scale(tickInterval);
+
+        if (from != 0)
+          printf("### NEW EXPERIMENT ###\n");
+
+        printf(
+            "Visibility\n"
+            "From %d, %s\n"
+            "# %s\n"
+            "Pollers,  Samples,       Min,      Mean,       Max,        SD\n",
+            from, targetName.c_str(), getDateTime().c_str());
+
+        for (int i = 1; i < nThreads; i++) {
+          printf("%d, %s\n", i, stats[i].format('s').c_str());
+          stats[i].reset();
+        }
+      }
+      return 0;
+      
+    }
+    else {
+      IdxOffset = 1;
+      measureVisibilityFrom(stats, from);
+      printf("Visibility\n"
+             "From %d, %s\n"
+             "# %s\n"
+             "Pollers,  Samples,       Min,      Mean,       Max,        SD\n",
+             from, targetName.c_str(), getDateTime().c_str());
+      break;
+    }
+  }    
   default:
     printf("Unknown experiment\n");
     printHelp();

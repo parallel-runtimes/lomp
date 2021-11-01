@@ -360,8 +360,10 @@ void measureBackoff(lomp::statistic * stats) {
 
 static void printHelp() {
   printf("The first argument determines the test.\n"
-         "I[if]        -- Atomic increment of integer or float\n"
-         "B            -- Backof stats for fp add\n");
+         "I[ifet]      -- Atomic increment of integer (i) or float (f)\n"
+         "                e = float with random e**x backoff\n"
+         "                t = float with TTAS\n"
+         "B            -- Backoff stats for fp add\n");
 }
 
 static void printStats(lomp::statistic * stats, int count, int offset = 1) {
