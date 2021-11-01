@@ -79,7 +79,7 @@ namespace Target {
       __INTEL_COMPILER_BUILD_DATE)
 #elif defined(__clang__)
 #define COMPILER_NAME                                                          \
-  "LLVM:" STRINGIFY(__clang_major__) ":" STRINGIFY(                            \
+  "LLVM: " STRINGIFY(__clang_major__) ":" STRINGIFY(                           \
       __clang_minor__) ":" STRINGIFY(__clang_patchlevel__)
 #define UNROLL_LOOP _Pragma("unroll")
 #ifndef FALLTHROUGH

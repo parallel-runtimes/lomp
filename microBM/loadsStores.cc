@@ -583,7 +583,7 @@ void measureVisibilityFrom(lomp::statistic * stats,int from) {
         }
 #pragma omp barrier
         switch (whatIDo) {
-        case active:
+        case active: {
           // Everyone has seen the write.
           // Reset the line for next time.
           *bl = 0;
@@ -592,6 +592,7 @@ void measureVisibilityFrom(lomp::statistic * stats,int from) {
           if (elapsed > 0)
             stats[sharing].addSample(elapsed);
           break;
+        }
         case polling:
         case nothing:
           break;
