@@ -51,8 +51,10 @@ show the architecture name as reported by the `uname` command):
 * Intel\* Processors (x86\_64)
 * RISC-V\* Processors, 64 bit (riscv64)
 
-There is incomplete support for ARM-based Apple\* Macs (which is
-held up by an LLVM compiler [bug](https://bugs.llvm.org/show_bug.cgi?id=48885)).
+The library works with Arm 64 bit processors running MacOS (announced as (arm64) by `uname` there), 
+but an LLVM compiler from at least April 2021 is required, since there was a compiler bug 
+(unrelated to the runtime) which broke OpenMP tasks there as a result of incorrect assumptions about
+varargs argument passing on that platform. (See [this bug](https://bugs.llvm.org/show_bug.cgi?id=48885) for details.)
 
 
 ## Supported OpenMP Features
