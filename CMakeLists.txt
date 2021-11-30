@@ -11,7 +11,6 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "Build type set to: ${CMAKE_BUILD_TYPE}")
 
-
 # Project languages
 enable_language(CXX)
 enable_language(C)
@@ -168,6 +167,7 @@ include_directories(./src)
 
 # Build the runtime library
 add_subdirectory(src)
+add_subdirectory(include)
 
 if(LOMP_BUILD_EXAMPLES)
     # Build the example programs
