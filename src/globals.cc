@@ -31,6 +31,14 @@ bool RuntimeInitialized = false;
 const int DefaultNumThreads = 0; // Let the ThreadTeam choose.
 int NumThreads;                  // OMP_NUM_THREADS
 
+// Display the LOMP environment
+void displayEnvironment(int verbosity) {
+  printf("OPENMP DISPLAY ENVIRONMENT\n");
+  printf("  _OPENMP='%d'\n", 0);
+  printf("  [host] OMP_NUM_THREADS=%d\n", NumThreads);
+  printf("OPENMP DISPLAY ENVIRONMENT END\n");
+}
+
 // Set up necessary runtime data structures.
 void initializeRuntime() {
   debug(Debug::Announce,
@@ -65,6 +73,20 @@ void initializeRuntime() {
   // and the loop scheduling parse OMP_SCHEDULE so that schedule(runtime)
   // works.
   initializeLoops();
+
+  // Print LOMP environment if requested via OMP_DISPLAY_ENV
+  std::string env;
+  int envVerbosity = 0;
+  environment::getString("OMP_DISPLAY_ENV", env, "false");
+  if (env == "true" || env == "1") {
+    envVerbosity = 1;
+  }
+  else if (env == "verbose") {
+    envVerbosity = 2;
+  }
+  if (envVerbosity) {
+    displayEnvironment(envVerbosity);
+  }
 
   RuntimeInitialized = true;
 }

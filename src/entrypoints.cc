@@ -97,6 +97,10 @@ double omp_get_wtime(void) {
   return time;
 }
 
+void omp_display_env(int verbosity) {
+  lomp::displayEnvironment(verbosity);
+}
+
 // Functions called by the compiler itself.
 void __kmpc_push_num_threads(ident_t *, int32_t, int32_t nthreads) {
   debug_enter();

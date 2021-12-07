@@ -23,6 +23,7 @@ extern int NumThreads;
 void initializeRuntime();
 void intializeLocks();
 double getTime();
+void displayEnvironment(int verbosity);
 
 } // namespace lomp
 

@@ -87,6 +87,9 @@ extern void omp_get_schedule(omp_sched_t *, int *);
 // Timing Routine
 extern double omp_get_wtime(void);
 
+// Display environment
+extern void omp_display_env(int verbose);
+
 // Much more to come: enumerations for various things, ...
 #if (__cplusplus)
 }
