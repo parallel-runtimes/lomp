@@ -97,8 +97,11 @@ double omp_get_wtime(void) {
   return time;
 }
 
-void omp_display_env(int verbosity) {
-  lomp::displayEnvironment(verbosity);
+void omp_display_env(int verbose) {
+  if (!lomp::RuntimeInitialized) {
+    lomp::initializeRuntime();
+  }
+  lomp::displayEnvironment(verbose ? 2 /* all ICVs */ : 1 /* OpenMP ICVs */);
 }
 
 // Functions called by the compiler itself.

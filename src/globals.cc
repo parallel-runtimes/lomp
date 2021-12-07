@@ -32,10 +32,30 @@ const int DefaultNumThreads = 0; // Let the ThreadTeam choose.
 int NumThreads;                  // OMP_NUM_THREADS
 
 // Display the LOMP environment
+void displayEnvironmentVariable(const std::string & name) {
+  std::string value;
+  environment::getString(name.c_str(), value, "");
+  if (value.empty()) {
+    printf("  [host] %s: value is not defined\n", name.c_str());
+  }
+  else {
+    printf("  [host] %s='%s'\n", name.c_str(), value.c_str());
+  }
+}
+
 void displayEnvironment(int verbosity) {
+  auto standardDisplay = {"OMP_NUM_THREADS", "OMP_SCHEDULE", "OMP_DISPLAY_ENV"};
+  auto verboseDisplay = {"LOMP_LOCK_KIND"};
   printf("OPENMP DISPLAY ENVIRONMENT\n");
   printf("  _OPENMP='%d'\n", 0);
-  printf("  [host] OMP_NUM_THREADS=%d\n", NumThreads);
+  for (auto var : standardDisplay) {
+    displayEnvironmentVariable(var);
+  }
+  if (verbosity == 2) {
+    for (auto var : verboseDisplay) {
+      displayEnvironmentVariable(var);
+    }
+  }
   printf("OPENMP DISPLAY ENVIRONMENT END\n");
 }
 
@@ -76,16 +96,16 @@ void initializeRuntime() {
 
   // Print LOMP environment if requested via OMP_DISPLAY_ENV
   std::string env;
-  int envVerbosity = 0;
+  int verbosity = 0;
   environment::getString("OMP_DISPLAY_ENV", env, "false");
   if (env == "true" || env == "1") {
-    envVerbosity = 1;
+    verbosity = 1;
   }
   else if (env == "verbose") {
-    envVerbosity = 2;
+    verbosity = 2;
   }
-  if (envVerbosity) {
-    displayEnvironment(envVerbosity);
+  if (verbosity) {
+    displayEnvironment(verbosity);
   }
 
   RuntimeInitialized = true;
