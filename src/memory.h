@@ -1,6 +1,10 @@
+//===-- memory.h - LOMP Memory Allocation Interfaces ------------*- C++ -*-===//
 //
-// Created by micha on 19.02.2022.
+// Part of the LOMP project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
+//===----------------------------------------------------------------------===//
 
 #ifndef LOMP_MEMORY_H
 #define LOMP_MEMORY_H
