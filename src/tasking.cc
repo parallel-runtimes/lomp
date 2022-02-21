@@ -19,6 +19,7 @@
 
 #include "debug.h"
 
+#include "memory.h"
 #include "tasking.h"
 #include "threads.h"
 #include "numa_support.h"
@@ -343,9 +344,9 @@ size_t ComputeAllocSize(size_t sizeOfTaskClosure, size_t sizeOfShareds) {
 
 TaskDescriptor * AllocateTask(size_t sizeOfTaskClosure, size_t sizeOfShareds) {
   auto allocSize = ComputeAllocSize(sizeOfTaskClosure, sizeOfShareds);
-  auto task = static_cast<TaskDescriptor *>(malloc(allocSize));
+  auto * task = static_cast<TaskDescriptor *>(memory::aligned_alloc_chunk(allocSize));
   if (!task) {
-    // TODO: handle this error
+    lomp::fatalError("Could not allocate %d bytes for task descriptor", allocSize);
   }
 #if DEBUG_TASKING
   memset(static_cast<void *>(task), 0, allocSize);
@@ -440,7 +441,7 @@ bool StoreTask(TaskDescriptor * task) {
 
 void FreeTask(TaskDescriptor * task) {
   // memset(task, 0, sizeof(TaskDescriptor));
-  free(task);
+  memory::aligned_free_chunk(task);
 }
 
 void FreeTaskAndAncestors(TaskDescriptor * task) {
