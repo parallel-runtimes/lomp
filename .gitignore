@@ -29,6 +29,12 @@ microBM/x86_64/
 # Sublime Text files
 *.sublime-workspace
 
+# CLion files (and build output)
+/cmake-build-debug-remote/
+/cmake-build-debug-wsl/
+/cmake-build-release/
+.idea
+
 # Prerequisites
 *.d
 
@@ -82,3 +88,4 @@ __pycache__
 
 # NFS temp files
 .nfs*
+
