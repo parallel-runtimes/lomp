@@ -17,8 +17,7 @@
 
 #include "debug.h"
 
-namespace lomp {
-namespace environment {
+namespace lomp::environment {
 
 bool getString(char const * var, std::string & value, const std::string & def) {
   debug_enter();
@@ -93,5 +92,5 @@ bool getStringWithIntArgument(char const * var,
   debug_leave();
   return result;
 }
-} // namespace environment
-} // namespace lomp
+
+} // namespace lomp::environment

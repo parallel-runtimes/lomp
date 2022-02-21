@@ -25,6 +25,7 @@
 #include "version.h"
 
 namespace lomp {
+
 bool RuntimeInitialized = false;
 
 // list of ICVs supported
@@ -54,7 +55,7 @@ void initializeRuntime() {
   // Parse the envirable if it is set.
   Thread::initializeForcedReduction();
 
-  auto team = new ThreadTeam(NumThreads);
+  auto * team = new ThreadTeam(NumThreads);
   // Refer to it even when debug is macro-ed out to
   // avoid a compiler warning.
   (void)team;
