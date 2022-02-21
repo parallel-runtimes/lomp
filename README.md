@@ -51,10 +51,11 @@ show the architecture name as reported by the `uname` command):
 * Intel\* Processors (x86\_64)
 * RISC-V\* Processors, 64 bit (riscv64)
 
-The library works with Arm 64-bit processors running macOS (announced as (arm64) by `uname` there), 
-but an LLVM compiler from at least April 2021 is required, since there was a compiler bug 
-(unrelated to the runtime) which broke OpenMP tasks there as a result of incorrect assumptions about
-varargs argument passing on that platform. (See [this bug](https://bugs.llvm.org/show_bug.cgi?id=48885) for details.)
+The library works with Arm 64-bit processors running macOS (announced as
+(arm64) by `uname` there), but an LLVM compiler from at least April 2021 is
+required, since there was a compiler bug(unrelated to the runtime) which broke
+OpenMP tasks there as a result of incorrect assumptions about varargs argument
+passing on that platform. (See [this bug](https://bugs.llvm.org/show_bug.cgi?id=48885) for details.)
 
 
 ## Supported OpenMP Features
@@ -192,7 +193,8 @@ Here are the steps needed:
   * with GNU Make: `make test`
   * with Ninja: `ninja test`
 
-The default build configuration is "Release" mode, which enables compiler optimizations.  Please see below for how to change this default.
+The default build configuration is "Release" mode, which enables compiler
+optimizations.  Please see below for how to change this default.
 
 To use LOMP with an existing code, once you have built the library, you should
 be able to use `LD_LIBRARY_PATH` on Linux (or `DYLD_LIBRARY_PATH` on macOS) to
@@ -277,7 +279,9 @@ The following options can be set using the `cmake` command line interface:
 
 ## Installing LOMP
 
-LOMP supports to be installed using the `install` target.  The location is determined via the `-DCMAKE_INSTALL_PREFIX=<path>` configuration option for CMake.  After a successful build, the following will install LOMP
+LOMP supports to be installed using the `install` target.  The location is
+determined via the `-DCMAKE_INSTALL_PREFIX=<path>` configuration option for
+CMake.  After a successful build, the following will install LOMP
   * with GNU Make: `make install`
   * with Ninja: `ninja install`
 
