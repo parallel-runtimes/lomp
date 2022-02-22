@@ -317,7 +317,7 @@ TaskPool * TaskPoolFactory() {
   pool = &taskPool;
 #endif
 #if USE_MULTI_TASK_POOL
-  pool = new TaskPool{};
+  pool = memory::make_aligned_struct<TaskPool>();
 #endif
 #if DEBUG_TASKING
   printf("task pool factory, task pool %p\n", pool);
@@ -776,7 +776,7 @@ void TaskgroupBegin() {
   auto thread = Thread::getCurrentThread();
   auto outer = thread->getCurrentTaskgroup();
 
-  auto inner = new Taskgroup(outer);
+  auto * inner = memory::make_aligned_struct<Taskgroup>(outer);
   thread->setCurrentTaskgroup(inner);
 
 #if DEBUG_TASKING
