@@ -6,24 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cstring>
-#include <ctime>
-#include <cstdio>
-#include <cassert>
-
-#include <algorithm>
-#include <array>
-#include <deque>
-#include <mutex>
-#include <random>
-
-#include "debug.h"
-
-#include "memory.h"
-#include "tasking.h"
-#include "threads.h"
-#include "numa_support.h"
-
 // Configuration options for the tasking support of LOMP
 #define USE_LINKED_LIST_LIFO_TASK_POOL 0
 #define USE_RESTR_LINKED_LIST_LIFO_TASK_POOL 0
@@ -35,16 +17,40 @@
 #define USE_SINGLE_TASK_POOL 0
 #define USE_MULTI_TASK_POOL 1
 
-#define USE_RANDOM_STEALING 0
+#define USE_RANDOM_STEALING 1
 #if (LOMP_TARGET_LINUX)
 // This task stealing algorithm requires Linux support thread affinity.
 #define USE_NUMA_AWARE_RANDOM_STEALING 1
 #else
 // Fallback implementation if we're not on a Linux system.
-#define USE_ROUND_ROBIN_STEALING 1
+#define USE_ROUND_ROBIN_STEALING 0
 #endif
 
 #define DEBUG_TASKING 0
+
+#include <cstring>
+#include <ctime>
+#if DEBUG_TASKING
+#include <cstdio>
+#endif
+#include <cassert>
+
+#include <algorithm>
+#include <array>
+#include <deque>
+#include <mutex>
+#if USE_RANDOM_STEALING
+#include <random>
+#endif
+
+#include "debug.h"
+
+#include "memory.h"
+#include "tasking.h"
+#include "threads.h"
+#if USE_NUMA_AWARE_RANDOM_STEALING
+#include "numa_support.h"
+#endif
 
 namespace lomp::Tasking {
 
@@ -162,7 +168,7 @@ struct TaskPoolLinkedListLIFO {
   TaskPoolLinkedListLIFO() : head(nullptr), taskCount(0) {}
 
   bool put(TaskDescriptor * task) {
-    auto node = new ListNode{nullptr, task};
+    auto * node = memory::make_aligned_struct<ListNode>(nullptr, task);
     if (!node) {
       return false;
     }
@@ -190,7 +196,7 @@ struct TaskPoolLinkedListLIFO {
     }
     if (node) {
       task = node->task;
-      delete node;
+      memory::delete_aligned_struct(node);
       taskCount--;
     }
     return task;
@@ -222,7 +228,7 @@ struct TaskPoolRestrictedLinkedListLIFO {
   }
 
   bool put(TaskDescriptor * task) {
-    ListNode * node = new ListNode;
+    auto * node = memory::make_aligned_struct<ListNode>();
     std::lock_guard<Lock> lock_guard(lock);
     node->task = task;
     node->next = nullptr;
@@ -258,7 +264,7 @@ struct TaskPoolRestrictedLinkedListLIFO {
     }
     if (node) {
       task = node->task;
-      delete node;
+      memory::delete_aligned_struct(node);
       taskCount--;
     }
     return task;
@@ -344,7 +350,7 @@ size_t ComputeAllocSize(size_t sizeOfTaskClosure, size_t sizeOfShareds) {
 
 TaskDescriptor * AllocateTask(size_t sizeOfTaskClosure, size_t sizeOfShareds) {
   auto allocSize = ComputeAllocSize(sizeOfTaskClosure, sizeOfShareds);
-  auto * task = static_cast<TaskDescriptor *>(memory::aligned_alloc_chunk(allocSize));
+  auto * task = static_cast<TaskDescriptor *>(memory::make_aligned_chunk(allocSize));
   if (!task) {
     lomp::fatalError("Could not allocate %d bytes for task descriptor", allocSize);
   }
@@ -441,7 +447,7 @@ bool StoreTask(TaskDescriptor * task) {
 
 void FreeTask(TaskDescriptor * task) {
   // memset(task, 0, sizeof(TaskDescriptor));
-  memory::aligned_free_chunk(task);
+  memory::delete_aligned_chunk(task);
 }
 
 void FreeTaskAndAncestors(TaskDescriptor * task) {
