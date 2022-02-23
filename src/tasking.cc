@@ -29,7 +29,6 @@
 #define DEBUG_TASKING 0
 
 #include <cstring>
-#include <ctime>
 #if DEBUG_TASKING
 #include <cstdio>
 #endif
@@ -168,7 +167,7 @@ struct TaskPoolLinkedListLIFO {
   TaskPoolLinkedListLIFO() : head(nullptr), taskCount(0) {}
 
   bool put(TaskDescriptor * task) {
-    auto * node = memory::make_aligned_struct<ListNode>(nullptr, task);
+    auto * node = new ListNode{nullptr, task};
     if (!node) {
       return false;
     }
@@ -214,6 +213,16 @@ private:
   struct ListNode {
     ListNode * next;
     TaskDescriptor * task;
+
+    void * operator new(std::size_t sz) {
+      fprintf(stderr, "new at %s:%d\n", __FILE__, __LINE__);
+      return memory::make_aligned_chunk(sz);
+    }
+
+    void operator delete(void * ptr) {
+      fprintf(stderr, "delete at %s:%d\n", __FILE__, __LINE__);
+      memory::delete_aligned_chunk(ptr);
+    }
   };
   ListNode * head;
   size_t taskCount;
@@ -228,7 +237,7 @@ struct TaskPoolRestrictedLinkedListLIFO {
   }
 
   bool put(TaskDescriptor * task) {
-    auto * node = memory::make_aligned_struct<ListNode>();
+    auto * node = new ListNode{nullptr, task};
     std::lock_guard<Lock> lock_guard(lock);
     node->task = task;
     node->next = nullptr;
@@ -282,6 +291,16 @@ private:
   struct ListNode {
     ListNode * next;
     TaskDescriptor * task;
+
+    void * operator new(std::size_t sz) {
+      fprintf(stderr, "new at %s:%d\n", __FILE__, __LINE__);
+      return memory::make_aligned_chunk(sz);
+    }
+
+    void operator delete(void * ptr) {
+      fprintf(stderr, "delete at %s:%d\n", __FILE__, __LINE__);
+      memory::delete_aligned_chunk(ptr);
+    }
   };
   ListNode * head;
   size_t taskCount;
