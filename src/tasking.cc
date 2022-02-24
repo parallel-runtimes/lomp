@@ -210,19 +210,14 @@ struct TaskPoolLinkedListLIFO {
 #endif
 
 private:
-  struct ListNode {
+  struct ListNode : private memory::CacheAligned {
+    ListNode(ListNode * next_, TaskDescriptor * task_) : next(next_), task(task_) {}
+
     ListNode * next;
     TaskDescriptor * task;
 
-    void * operator new(std::size_t sz) {
-      fprintf(stderr, "new at %s:%d\n", __FILE__, __LINE__);
-      return memory::make_aligned_chunk(sz);
-    }
-
-    void operator delete(void * ptr) {
-      fprintf(stderr, "delete at %s:%d\n", __FILE__, __LINE__);
-      memory::delete_aligned_chunk(ptr);
-    }
+    using CacheAligned::operator new;
+    using CacheAligned::operator delete;
   };
   ListNode * head;
   size_t taskCount;
@@ -288,19 +283,14 @@ struct TaskPoolRestrictedLinkedListLIFO {
 #endif
 
 private:
-  struct ListNode {
+  struct ListNode : private memory::CacheAligned {
+    ListNode(ListNode * next_, TaskDescriptor * task_) : next(next_), task(task_) {}
+
     ListNode * next;
     TaskDescriptor * task;
 
-    void * operator new(std::size_t sz) {
-      fprintf(stderr, "new at %s:%d\n", __FILE__, __LINE__);
-      return memory::make_aligned_chunk(sz);
-    }
-
-    void operator delete(void * ptr) {
-      fprintf(stderr, "delete at %s:%d\n", __FILE__, __LINE__);
-      memory::delete_aligned_chunk(ptr);
-    }
+    using CacheAligned::operator new;
+    using CacheAligned::operator delete;
   };
   ListNode * head;
   size_t taskCount;

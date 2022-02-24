@@ -50,6 +50,18 @@ inline void delete_aligned_chunk(void * ptr) {
   delete[] chunk;
 }
 
+struct CacheAligned {
+    void * operator new(std::size_t sz) {
+      fprintf(stderr, "new at %s:%d\n", __FILE__, __LINE__);
+      return make_aligned_chunk(sz);
+    }
+
+    void operator delete(void * ptr) {
+      fprintf(stderr, "delete at %s:%d\n", __FILE__, __LINE__);
+      delete_aligned_chunk(ptr);
+    }
+};
+
 } // namespace lomp::memory
 
 #endif //LOMP_MEMORY_H
