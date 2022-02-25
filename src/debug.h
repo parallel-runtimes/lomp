@@ -41,9 +41,10 @@ enum Debug {
   // Switch around when debugging specific subsystems so that you can get info from only the subsystem you want.
   Reduction = 15,
   Threads = 20,
-  Barriers = 30,
-  Loops = 40,
-  Locks = 50,
+  MemoryAllocation = 30,
+  Barriers = 40,
+  Loops = 50,
+  Locks = 60,
   Functions = 1000,
 };
 

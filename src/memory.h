@@ -10,6 +10,7 @@
 #define LOMP_MEMORY_H
 
 #include "target.h"
+#include "debug.h"
 
 #include <new>
 
@@ -17,35 +18,50 @@ namespace lomp::memory {
 
 template<typename AllocType, typename... Args>
 inline AllocType * make_aligned(Args&&... args) {
-  fprintf(stderr, "called %s at %s:%d\n", __FUNCTION__, __FILE__, __LINE__);
-  return new (std::align_val_t(CACHELINE_SIZE)) AllocType(std::forward<Args>(args)...);
+  auto * ptr = new (std::align_val_t(CACHELINE_SIZE)) AllocType(std::forward<Args>(args)...);
+  debug(Debug::MemoryAllocation,
+        "aligned allocation of %zu bytes at %p via %s",
+        sizeof(AllocType), ptr, __FUNCTION__);
+  return ptr;
 }
 
 template<typename AllocType, typename... Args>
 inline AllocType * make_aligned_struct(Args&&... args) {
-  fprintf(stderr, "called %s at %s:%d\n", __FUNCTION__, __FILE__, __LINE__);
-  return new (std::align_val_t(CACHELINE_SIZE)) AllocType{std::forward<Args>(args)...};
+  auto * ptr = new (std::align_val_t(CACHELINE_SIZE)) AllocType{std::forward<Args>(args)...};
+  debug(Debug::MemoryAllocation,
+        "aligned allocation of %zu bytes at %p via %s",
+        sizeof(AllocType), ptr, __FUNCTION__);
+  return ptr;
 }
 
 inline void * make_aligned_chunk(size_t size) {
-  fprintf(stderr, "called %s at %s:%d\n", __FUNCTION__, __FILE__, __LINE__);
-  return new (std::align_val_t(CACHELINE_SIZE)) char[size];
+  auto * ptr = new (std::align_val_t(CACHELINE_SIZE)) char[size];
+  debug(Debug::MemoryAllocation,
+        "aligned allocation of %zu bytes at %p via %s",
+        size, ptr, __FUNCTION__);
+  return ptr;
 }
 
 template<typename AllocType>
 inline void delete_aligned(AllocType * ptr) {
-  fprintf(stderr, "called %s at %s:%d\n", __FUNCTION__, __FILE__, __LINE__);
+  debug(Debug::MemoryAllocation,
+        "dealloction of pointer %p via %s()",
+        ptr, __FUNCTION__);
   delete ptr;
 }
 
 template<typename AllocType>
 inline void delete_aligned_struct(AllocType * ptr) {
-  fprintf(stderr, "called %s at %s:%d\n", __FUNCTION__, __FILE__, __LINE__);
+  debug(Debug::MemoryAllocation,
+        "dealloction of pointer %p via %s()",
+        ptr, __FUNCTION__);
   delete ptr;
 }
 
 inline void delete_aligned_chunk(void * ptr) {
-  fprintf(stderr, "called %s at %s:%d\n", __FUNCTION__, __FILE__, __LINE__);
+  debug(Debug::MemoryAllocation,
+        "dealloction of pointer %p via %s()",
+        ptr, __FUNCTION__);
   auto * chunk = reinterpret_cast<char *>(ptr);
   delete[] chunk;
 }
@@ -54,12 +70,10 @@ struct CacheAligned {
     static const auto alignment = CACHELINE_SIZE;
 
     void * operator new(std::size_t sz) {
-      fprintf(stderr, "new at %s:%d\n", __FILE__, __LINE__);
       return make_aligned_chunk(sz);
     }
 
     void operator delete(void * ptr) {
-      fprintf(stderr, "delete at %s:%d\n", __FILE__, __LINE__);
       delete_aligned_chunk(ptr);
     }
 };
