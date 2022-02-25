@@ -45,7 +45,7 @@ inline void * make_aligned_chunk(size_t size) {
 template<typename AllocType>
 inline void delete_aligned(AllocType * ptr) {
   debug(Debug::MemoryAllocation,
-        "dealloction of pointer %p via %s()",
+        "deallocation of pointer %p via %s()",
         ptr, __FUNCTION__);
   delete ptr;
 }
@@ -53,14 +53,14 @@ inline void delete_aligned(AllocType * ptr) {
 template<typename AllocType>
 inline void delete_aligned_struct(AllocType * ptr) {
   debug(Debug::MemoryAllocation,
-        "dealloction of pointer %p via %s()",
+        "deallocation of pointer %p via %s()",
         ptr, __FUNCTION__);
   delete ptr;
 }
 
 inline void delete_aligned_chunk(void * ptr) {
   debug(Debug::MemoryAllocation,
-        "dealloction of pointer %p via %s()",
+        "deallocation of pointer %p via %s()",
         ptr, __FUNCTION__);
   auto * chunk = reinterpret_cast<char *>(ptr);
   delete[] chunk;
