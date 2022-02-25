@@ -51,6 +51,8 @@ inline void delete_aligned_chunk(void * ptr) {
 }
 
 struct CacheAligned {
+    static const auto alignment = CACHELINE_SIZE;
+
     void * operator new(std::size_t sz) {
       fprintf(stderr, "new at %s:%d\n", __FILE__, __LINE__);
       return make_aligned_chunk(sz);
