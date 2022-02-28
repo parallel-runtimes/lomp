@@ -101,7 +101,8 @@ void omp_display_env(int verbose) {
   if (!lomp::RuntimeInitialized) {
     lomp::initializeRuntime();
   }
-  lomp::displayEnvironment(verbose ? 2 /* all ICVs */ : 1 /* OpenMP ICVs */);
+  lomp::displayEnvironment(verbose ? lomp::displayVerbosity::verbose /* all ICVs */
+                                   : lomp::displayVerbosity::enabled /* OpenMP ICVs */);
 }
 
 // Functions called by the compiler itself.

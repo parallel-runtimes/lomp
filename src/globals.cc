@@ -43,15 +43,15 @@ void displayEnvironmentVariable(const std::string & name) {
   }
 }
 
-void displayEnvironment(int verbosity) {
-  auto standardDisplay = {"OMP_NUM_THREADS", "OMP_SCHEDULE", "OMP_DISPLAY_ENV"};
-  auto verboseDisplay = {"LOMP_LOCK_KIND"};
+void displayEnvironment(displayVerbosity verbosity) {
+  auto standardDisplay = {"OMP_NUM_THREADS","OMP_SCHEDULE", "OMP_DISPLAY_ENV"};
+  auto verboseDisplay = {"LOMP_LOCK_KIND", "LOMP_BARRIER_KIND", "LOMP_DEBUG", "LOMP_TRACE"};
   printf("OPENMP DISPLAY ENVIRONMENT\n");
   printf("  _OPENMP='%d'\n", 0);
   for (auto var : standardDisplay) {
     displayEnvironmentVariable(var);
   }
-  if (verbosity == 2) {
+  if (verbosity == displayVerbosity::verbose) {
     for (auto var : verboseDisplay) {
       displayEnvironmentVariable(var);
     }
@@ -96,15 +96,15 @@ void initializeRuntime() {
 
   // Print LOMP environment if requested via OMP_DISPLAY_ENV
   std::string env;
-  int verbosity = 0;
+  auto verbosity = displayVerbosity::disabled;
   environment::getString("OMP_DISPLAY_ENV", env, "false");
   if (env == "true" || env == "1") {
-    verbosity = 1;
+    verbosity = displayVerbosity::enabled;
   }
   else if (env == "verbose") {
-    verbosity = 2;
+    verbosity = displayVerbosity::verbose;
   }
-  if (verbosity) {
+  if (verbosity != displayVerbosity::disabled) {
     displayEnvironment(verbosity);
   }
 
