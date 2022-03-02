@@ -97,6 +97,14 @@ double omp_get_wtime(void) {
   return time;
 }
 
+void omp_display_env(int verbose) {
+  if (!lomp::RuntimeInitialized) {
+    lomp::initializeRuntime();
+  }
+  lomp::displayEnvironment(verbose ? lomp::displayVerbosity::verbose /* all ICVs */
+                                   : lomp::displayVerbosity::enabled /* OpenMP ICVs */);
+}
+
 // Functions called by the compiler itself.
 void __kmpc_push_num_threads(ident_t *, int32_t, int32_t nthreads) {
   debug_enter();
