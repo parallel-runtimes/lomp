@@ -6,23 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cstring>
-#include <ctime>
-#include <cstdio>
-#include <cassert>
-
-#include <algorithm>
-#include <array>
-#include <deque>
-#include <mutex>
-#include <random>
-
-#include "debug.h"
-
-#include "tasking.h"
-#include "threads.h"
-#include "numa_support.h"
-
 // Configuration options for the tasking support of LOMP
 #define USE_LINKED_LIST_LIFO_TASK_POOL 0
 #define USE_RESTR_LINKED_LIST_LIFO_TASK_POOL 0
@@ -34,16 +17,39 @@
 #define USE_SINGLE_TASK_POOL 0
 #define USE_MULTI_TASK_POOL 1
 
-#define USE_RANDOM_STEALING 0
+#define USE_RANDOM_STEALING 1
 #if (LOMP_TARGET_LINUX)
 // This task stealing algorithm requires Linux support thread affinity.
 #define USE_NUMA_AWARE_RANDOM_STEALING 1
 #else
 // Fallback implementation if we're not on a Linux system.
-#define USE_ROUND_ROBIN_STEALING 1
+#define USE_ROUND_ROBIN_STEALING 0
 #endif
 
 #define DEBUG_TASKING 0
+
+#include <cstring>
+#if DEBUG_TASKING
+#include <cstdio>
+#endif
+#include <cassert>
+
+#include <algorithm>
+#include <array>
+#include <deque>
+#include <mutex>
+#if USE_RANDOM_STEALING
+#include <random>
+#endif
+
+#include "debug.h"
+
+#include "memory.h"
+#include "tasking.h"
+#include "threads.h"
+#if USE_NUMA_AWARE_RANDOM_STEALING
+#include "numa_support.h"
+#endif
 
 namespace lomp::Tasking {
 
@@ -161,7 +167,7 @@ struct TaskPoolLinkedListLIFO {
   TaskPoolLinkedListLIFO() : head(nullptr), taskCount(0) {}
 
   bool put(TaskDescriptor * task) {
-    auto node = new ListNode{nullptr, task};
+    auto * node = new ListNode{nullptr, task};
     if (!node) {
       return false;
     }
@@ -189,7 +195,7 @@ struct TaskPoolLinkedListLIFO {
     }
     if (node) {
       task = node->task;
-      delete node;
+      memory::delete_aligned_struct(node);
       taskCount--;
     }
     return task;
@@ -204,9 +210,14 @@ struct TaskPoolLinkedListLIFO {
 #endif
 
 private:
-  struct ListNode {
+  struct ListNode : private memory::CacheAligned {
+    ListNode(ListNode * next_, TaskDescriptor * task_) : next(next_), task(task_) {}
+
     ListNode * next;
     TaskDescriptor * task;
+
+    using CacheAligned::operator new;
+    using CacheAligned::operator delete;
   };
   ListNode * head;
   size_t taskCount;
@@ -221,7 +232,7 @@ struct TaskPoolRestrictedLinkedListLIFO {
   }
 
   bool put(TaskDescriptor * task) {
-    ListNode * node = new ListNode;
+    auto * node = new ListNode{nullptr, task};
     std::lock_guard<Lock> lock_guard(lock);
     node->task = task;
     node->next = nullptr;
@@ -257,7 +268,7 @@ struct TaskPoolRestrictedLinkedListLIFO {
     }
     if (node) {
       task = node->task;
-      delete node;
+      memory::delete_aligned_struct(node);
       taskCount--;
     }
     return task;
@@ -272,9 +283,14 @@ struct TaskPoolRestrictedLinkedListLIFO {
 #endif
 
 private:
-  struct ListNode {
+  struct ListNode : private memory::CacheAligned {
+    ListNode(ListNode * next_, TaskDescriptor * task_) : next(next_), task(task_) {}
+
     ListNode * next;
     TaskDescriptor * task;
+
+    using CacheAligned::operator new;
+    using CacheAligned::operator delete;
   };
   ListNode * head;
   size_t taskCount;
@@ -310,7 +326,7 @@ TaskPool * TaskPoolFactory() {
   pool = &taskPool;
 #endif
 #if USE_MULTI_TASK_POOL
-  pool = new TaskPool{};
+  pool = memory::make_aligned_struct<TaskPool>();
 #endif
 #if DEBUG_TASKING
   printf("task pool factory, task pool %p\n", pool);
@@ -343,9 +359,9 @@ size_t ComputeAllocSize(size_t sizeOfTaskClosure, size_t sizeOfShareds) {
 
 TaskDescriptor * AllocateTask(size_t sizeOfTaskClosure, size_t sizeOfShareds) {
   auto allocSize = ComputeAllocSize(sizeOfTaskClosure, sizeOfShareds);
-  auto task = static_cast<TaskDescriptor *>(malloc(allocSize));
+  auto * task = static_cast<TaskDescriptor *>(memory::make_aligned_chunk(allocSize));
   if (!task) {
-    // TODO: handle this error
+    lomp::fatalError("Could not allocate %d bytes for task descriptor", allocSize);
   }
 #if DEBUG_TASKING
   memset(static_cast<void *>(task), 0, allocSize);
@@ -440,7 +456,7 @@ bool StoreTask(TaskDescriptor * task) {
 
 void FreeTask(TaskDescriptor * task) {
   // memset(task, 0, sizeof(TaskDescriptor));
-  free(task);
+  memory::delete_aligned_chunk(task);
 }
 
 void FreeTaskAndAncestors(TaskDescriptor * task) {
@@ -769,7 +785,7 @@ void TaskgroupBegin() {
   auto thread = Thread::getCurrentThread();
   auto outer = thread->getCurrentTaskgroup();
 
-  auto inner = new Taskgroup(outer);
+  auto * inner = memory::make_aligned_struct<Taskgroup>(outer);
   thread->setCurrentTaskgroup(inner);
 
 #if DEBUG_TASKING
