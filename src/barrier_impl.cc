@@ -36,33 +36,6 @@
 #endif
 
 namespace lomp {
-// Derive publicly from this to force an aligned allocator to be used for the given object.
-// C++17 has better ways of doing this, but we're sticking to C++14...
-//template <intalignedAllocators alignment>
-//class  {
-//  static void * doAllocation(std::size_t bytes) {
-//    void * res;
-//    res = std::aligned_alloc(alignment, bytes);
-//    if (!res) {
-//      fatalError("Aligned memory allocation failed.");
-//    }
-//    return res;
-//  }
-//
-//public:
-//  static void * operator new[](std::size_t bytes) {
-//    return doAllocation(bytes);
-//  }
-//  static void * operator new(std::size_t bytes) {
-//    return doAllocation(bytes);
-//  }
-//  static void operator delete[](void * space) {
-//    free(space);
-//  }
-//  static void operator delete(void * space) {
-//    free(space);
-//  }
-//};
 
 // Be careful with these. They force the individual item to be cache-aligned and padded to the size of the cacheline.
 // If you want a single uint32 aligned at the start of a line with other data following it, DO NOT USE THIS!
