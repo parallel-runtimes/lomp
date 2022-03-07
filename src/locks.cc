@@ -38,7 +38,7 @@ namespace lomp::locks {
 // Note that this meets the requirements of the C++ "Lockable"
 // https://en.cppreference.com/w/cpp/named_req/Lockable ;
 // therefore it can be used behind std::lock_guard if required.
-class abstractLock {
+class abstractLock {  // TODO: should this be aligned to a cache line?
 public:
   abstractLock() {}
   virtual ~abstractLock() {}

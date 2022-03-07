@@ -321,9 +321,10 @@ its behavior:
   * `2`: print informational messages.
   * `10`: print  more details.
   * `20`: print debugging messages for LOMP threading subsystems.
-  * `30`: print debugging messages for barriers.
-  * `40`: print debugging messages for loop scheduling.
-  * `50`: print debugging messages for lock implementations.
+  * `30`: print debugging message for memory allocations.
+  * `40`: print debugging messages for barriers.
+  * `50`: print debugging messages for loop scheduling.
+  * `60`: print debugging messages for lock implementations.
   * `1000`: print debugging messages for internal function invocations.
 * `LOMP_TRACE`: Enable LOMP's internal tracing facility, setting the debug
   level to the value specified for `LOMP_TRACE`.  See `LOMP_DEBUG` for the
