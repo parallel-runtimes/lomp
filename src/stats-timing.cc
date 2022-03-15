@@ -432,7 +432,7 @@ static std::string formatTimer(double tick) {
   return desc.str();
 }
 
-#if (TARGET_HAS_TIMESTAMP)
+#if (TARGET_HAS_CYCLECOUNT)
 #if (LOMP_TARGET_ARCH_AARCH64)
 // Nice and simple!
 static double readHWTickTime() {

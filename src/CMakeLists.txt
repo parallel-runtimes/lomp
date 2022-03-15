@@ -10,6 +10,7 @@
 add_library(omp atomics.cc barrier_impl.cc entrypoints.cc environment.cc
                 globals.cc locks.cc loops.cc numa_support.cc
                 stats-timing.cc tasking.cc threads.cc util.cc
+                target.h target_x86_64.h target_arm.h target_riscv.h
                 version.h.in)
 set_target_properties(omp PROPERTIES VERSION 0.1 SOVERSION 1)
 

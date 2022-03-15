@@ -34,12 +34,14 @@
  * this is all there).
  */
 
-#define TARGET_HAS_TIMESTAMP 1
+#define TARGET_HAS_CYCLECOUNT 1
+#define TARGET_HAS_HWTICKTIME 0
+
 #if (defined(USING_BUILTIN_CYCLECOUNT))
 #undef USING_BUILTIN_CYCLECOUNT
 #else
-inline uint64_t readCycleCount() {
-  uint64_t res;
+inline std::uint64_t readCycleCount() {
+  std::uint64_t res;
 #if __riscv_xlen != 64
 #warning "Function readCycleCount() not implemented for RISC-V 32-bit"
 #else
