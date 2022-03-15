@@ -30,9 +30,9 @@ microBM/x86_64/
 *.sublime-workspace
 
 # CLion files (and build output)
-/cmake-build-debug-remote/
-/cmake-build-debug-wsl/
-/cmake-build-release/
+/cmake-build-debug-*/
+/cmake-build-release-*/
+/build-debug-*/
 .idea
 
 # Prerequisites
