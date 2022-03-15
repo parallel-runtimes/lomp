@@ -157,6 +157,8 @@ inline void CommitSpeculation() {}
 #define Target_AbortSpeculation(tag) void(0)
 #endif
 
+// TODO: we should split TARGET_HAS_TIMESTAMP into two compilation guards, 
+// one for readCycleCount() and one for readHWTickTime()
 #if (!TARGET_HAS_TIMESTAMP)
 inline uint64_t readCycleCount() {
   return std::chrono::steady_clock::now().time_since_epoch().count();
