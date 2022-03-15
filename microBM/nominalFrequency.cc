@@ -13,8 +13,8 @@
 /// On AMD cores it is not there and we have to measure it
 /// On Arm cores we can read it from a system register.
 /// Note that what we're actually looking at is the frequency at which the
-/// user-accessible high resolution timer runs. (That returned by rdtsc on x86_64,
-// and by reading the cntvct_el0 register on aarch64).
+/// user-accessible high resolution timer runs. (E.g., that returned by rdtsc
+/// on x86_64, and by reading the cntvct_el0 register on aarch64).
 ///
 //===----------------------------------------------------------------------===//
 
@@ -62,8 +62,8 @@ inline auto readCycleCount() {
 static double measureTSCtick() {
   // Use C++ "steady_clock" since cppreference.com recommends against
   // using hrtime.  Busy wait for 5ms based on the std::chrono clock
-  // and time that with our high reolution low overhead clock.
-  // Assuming the steady clock has a resonable resolution, 5ms should be
+  // and time that with our high resolution low overhead clock.
+  // Assuming the steady clock has a reasonable resolution, 5ms should be
   // long enough to wait. At a 1GHz clock, that is still 5MT, and even at
   // a 1MHz clock it's 5kT.
   auto start = std::chrono::steady_clock::now();
