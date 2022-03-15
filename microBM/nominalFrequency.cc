@@ -32,6 +32,8 @@
 #define LOMP_TARGET_ARCH_X86_64 1
 #elif (__aarch64__)
 #define LOMP_TARGET_ARCH_AARCH64 1
+#elif (__riscv)
+#define LOMP_TARGET_ARCH_RISCV 1
 #else
 #error "Unknown target architecture"
 #endif
@@ -56,6 +58,17 @@ static double readHWTickTime() {
 #include <x86intrin.h>
 inline auto readCycleCount() {
   return __rdtsc();
+}
+#elif (LOMP_TARGET_ARCH_RISCV)
+inline auto readCycleCount() {
+  uint64_t res;
+#if __riscv_xlen != 64
+#warning "Function readCycleCount() not implemented for RISC-V 32-bit"
+  res = 0;
+#else
+  __asm__ volatile("rdcycle %0" : "=r"(res));
+#endif
+  return res;
 }
 #endif
 
@@ -370,13 +383,16 @@ std::string formatSI(double interval, int width, char unit) {
 }
 
 int main(int, char **) {
+  double res = 0.0;
 #if (LOMP_TARGET_ARCH_AARCH64)
-  double res = readHWTickTime();
+  res = readHWTickTime();
 
   printf("AArch64 processor: \n"
          "   From high resolution timer frequency (cntfrq_el0) "
          "%sz => %s\n",
          formatSI(1. / res, 9, 'H').c_str(), formatSI(res, 9, 's').c_str());
+#elif (LOMP_TARGET_ARCH_RISCV)
+  res = measureTSCtick();
 #elif (LOMP_TARGET_ARCH_X86_64)
   std::string brandName = CPUBrandName();
   std::string modelName = CPUModelName();
@@ -391,8 +407,7 @@ int main(int, char **) {
     return 1;
   }
   char const * source = "Unknown";
-  double res;
-  // Try to get it from Intel's leaf15H
+  // Try to get it from Intel's leaf 15H
   if (extractLeaf15H(&res)) {
     source = "leaf 15H";
   }

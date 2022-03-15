@@ -443,10 +443,11 @@ static double readHWTickTime() {
 
   return tick;
 }
-#elif (LOMP_TARGET_RISCV)
-// Need code here. For the moment it's not setting
-// TARGET_HAS_TIMESTAMP so is just using the
-// std::chrono::steady_clock implementation.
+#elif (LOMP_TARGET_ARCH_RISCV)
+constexpr double readHWTickTime() {
+  auto sc = std::chrono::steady_clock::period();
+  return double(sc.num) / double(sc.den);
+}
 #elif (LOMP_TARGET_ARCH_X86_64)
 // Extract the tcik time from CPUID information; this is way more complicated than you would hope,
 // and depends on the hardware vendor.
