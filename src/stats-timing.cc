@@ -122,7 +122,7 @@ std::string CPUModelName() {
   FILE * f = fopen("/proc/cpuinfo", "r");
   if (f) {
     char line[256];
-    while (fgets(&line[0], sizeof(line), f) != 0) {
+    while (fgets(&line[0], sizeof(line), f) != nullptr) {
       if (strncmp("model name\t: ", &line[0], 13) == 0) {
 	fclose(f);
 	return std::string(&line[13]);
@@ -232,11 +232,11 @@ statistic & statistic::operator+=(const statistic & other) {
   }
 
   uint64_t newSampleCount = sampleCount + other.sampleCount;
-  double dnsc = double(newSampleCount);
-  double dsc = double(sampleCount);
-  double dscBydnsc = dsc / dnsc;
-  double dosc = double(other.sampleCount);
-  double delta = other.meanVal - meanVal;
+  auto dnsc = double(newSampleCount);
+  auto dsc = double(sampleCount);
+  auto dscBydnsc = dsc / dnsc;
+  auto dosc = double(other.sampleCount);
+  auto delta = other.meanVal - meanVal;
 
   // Try to order these calculations to avoid overflows. If this were Fortran,
   // then the compiler would not be able to re-order over brackets. In C++ it
@@ -316,8 +316,6 @@ uint32_t logHistogram::findBin(double sample) {
     if (binMax[b] > v)
       return b;
   fatalError("Trying to add a sample that is too large into a histogram\n");
-
-  return -1;
 }
 
 void logHistogram::addSample(double sample) {
@@ -432,7 +430,7 @@ static std::string formatTimer(double tick) {
   return desc.str();
 }
 
-#if (TARGET_HAS_TIMESTAMP)
+#if (TARGET_HAS_CYCLECOUNT)
 #if (LOMP_TARGET_ARCH_AARCH64)
 // Nice and simple!
 static double readHWTickTime() {

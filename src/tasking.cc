@@ -58,7 +58,7 @@ struct TaskPoolDeque {
   TaskPoolDeque() : taskCount(0), pool() {}
 
   bool put(TaskDescriptor * task) {
-    const std::lock_guard<Lock> guard(lock);
+    const auto guard = std::lock_guard{lock};
     if (taskCount >= maxSize) {
 #if DEBUG_TASKING
       printf("put: task pool full, task=%p, #tasks=%ld, max size deque: %ld\n",
@@ -79,7 +79,7 @@ struct TaskPoolDeque {
 
   TaskDescriptor * get() {
     TaskDescriptor * task = nullptr;
-    const std::lock_guard<Lock> guard(lock);
+    const auto guard = std::lock_guard{lock};
     if (taskCount > 0) {
       task = pool.back();
       pool.pop_back();
@@ -93,7 +93,7 @@ struct TaskPoolDeque {
 
   TaskDescriptor * steal() {
     TaskDescriptor * task = nullptr;
-    const std::lock_guard<Lock> guard(lock);
+    const auto guard = std::lock_guard{lock};
     if (taskCount > 0) {
       task = pool.front();
       pool.pop_front();
@@ -118,7 +118,7 @@ struct TaskPoolArrayLIFO {
   }
 
   bool put(TaskDescriptor * task) {
-    const std::lock_guard<Lock> guard(lock);
+    const auto guard = std::lock_guard{lock};
     if (taskCount >= maxSize) {
 #if DEBUG_TASKING
       printf("put: task pool full, task=%p, #tasks=%ld\n", task, taskCount);
@@ -136,7 +136,7 @@ struct TaskPoolArrayLIFO {
 
   TaskDescriptor * get() {
     TaskDescriptor * task = nullptr;
-    const std::lock_guard<Lock> guard(lock);
+    const auto guard = std::lock_guard{lock};
     if (taskCount > 0) {
       task = pool[taskCount - 1];
       pool[taskCount - 1] = nullptr;
@@ -172,7 +172,7 @@ struct TaskPoolLinkedListLIFO {
       return false;
     }
     {
-      const std::lock_guard<Lock> guard(lock);
+      const auto guard = std::lock_guard{lock};
       node->next = head;
       head = node;
       taskCount++;
@@ -188,7 +188,7 @@ struct TaskPoolLinkedListLIFO {
   TaskDescriptor * get() {
     ListNode * node = nullptr;
     TaskDescriptor * task = nullptr;
-    const std::lock_guard<Lock> guard(lock);
+    const auto guard = std::lock_guard{lock};
     if (head) {
       node = head;
       head = head->next;
@@ -374,8 +374,8 @@ TaskDescriptor * AllocateTask(size_t sizeOfTaskClosure, size_t sizeOfShareds) {
 
 void InitializeTaskDescriptor(TaskDescriptor * task, size_t sizeOfTaskClosure,
                               size_t sizeOfShareds, ThunkPointer task_entry) {
-  auto thread = Thread::getCurrentThread();
-  auto taskgroup = thread->getCurrentTaskgroup();
+  auto * thread = Thread::getCurrentThread();
+  auto * taskgroup = thread->getCurrentTaskgroup();
 
   // if task-private variables have been allocated, record the location
   // of the task-private space in the task descriptor
@@ -412,8 +412,8 @@ void InitializeTaskDescriptor(TaskDescriptor * task, size_t sizeOfTaskClosure,
 }
 
 void PrepareTask(TaskDescriptor * task) {
-  auto thread = Thread::getCurrentThread();
-  auto team = thread->getTeam();
+  auto * thread = Thread::getCurrentThread();
+  auto * team = thread->getTeam();
 
   // Count this task as being created for determining how many tasks are left to
   // be executed.
@@ -434,14 +434,14 @@ void PrepareTask(TaskDescriptor * task) {
  
   // Now we have to also record this task as active for a potentially active
   // taskgroup
-  if (auto taskgroup = task->metadata.taskgroup; taskgroup) {
+  if (auto * taskgroup = task->metadata.taskgroup; taskgroup) {
     assert(taskgroup->activeTasks.load() >= 0);
     taskgroup->activeTasks++;
   }
 }
 
 bool StoreTask(TaskDescriptor * task) {
-  auto taskPool = Thread::getCurrentThread()->getTaskPool();
+  auto * taskPool = Thread::getCurrentThread()->getTaskPool();
   
   // Try to put the task into the pool.
   if (taskPool->put(task)) {
@@ -463,11 +463,11 @@ void FreeTaskAndAncestors(TaskDescriptor * task) {
   // This lock prevents freeing tasks while another thread is also attempting to
   // purge completed tasks.
   static std::mutex lock;
-  std::lock_guard<std::mutex> guard(lock);
+  const auto guard = std::lock_guard{lock};
   size_t children = 0;
 
 #if DEBUG_TASKING
-  auto thread = Thread::getCurrentThread();
+  auto * thread = Thread::getCurrentThread();
   int tid = thread->getLocalId();
 #endif
 
@@ -498,8 +498,8 @@ void FreeTaskAndAncestors(TaskDescriptor * task) {
 }
 
 void InvokeTask(TaskDescriptor * task) {
-  auto thread = Thread::getCurrentThread();
-  auto team = thread->getTeam();
+  auto * thread = Thread::getCurrentThread();
+  auto * team = thread->getTeam();
   int32_t gtid = 0;
 
   // store the reference to the previously running task
@@ -545,8 +545,8 @@ void InvokeTask(TaskDescriptor * task) {
 }
 
 void CompleteTask(TaskDescriptor * task) {
-  auto thread = Thread::getCurrentThread();
-  auto team = thread->getTeam();
+  auto * thread = Thread::getCurrentThread();
+  auto * team = thread->getTeam();
 
   task->metadata.flags = TaskDescriptor::Flags::Completed;
 
@@ -566,7 +566,7 @@ void CompleteTask(TaskDescriptor * task) {
 
   // Now we have to also record this task as being no longer active for a
   // potentially active taskgroup
-  if (auto taskgroup = task->metadata.taskgroup; taskgroup) {
+  if (auto * taskgroup = task->metadata.taskgroup; taskgroup) {
     --taskgroup->activeTasks;
     assert(taskgroup->activeTasks.load() >= 0);
   }
@@ -580,8 +580,8 @@ void CompleteTask(TaskDescriptor * task) {
 #if USE_ROUND_ROBIN_STEALING
 struct RoundRobinStealTask {
   TaskDescriptor * operator()() {
-    auto thread = Thread::getCurrentThread();
-    auto team = thread->getTeam();
+    auto * thread = Thread::getCurrentThread();
+    auto * team = thread->getTeam();
     auto me = thread->getLocalId();
     auto teamSize = team->getCount();
     TaskDescriptor * task = nullptr;
@@ -605,8 +605,8 @@ struct RoundRobinStealTask {
 #if USE_RANDOM_STEALING
 struct RandomStealTask {
   TaskDescriptor * operator()() {
-    auto thread = Thread::getCurrentThread();
-    auto team = thread->getTeam();
+    auto * thread = Thread::getCurrentThread();
+    auto * team = thread->getTeam();
     auto me = thread->getLocalId();
     auto teamSize = team->getCount();
     TaskDescriptor * task = nullptr;
@@ -624,7 +624,7 @@ struct RandomStealTask {
 #if USE_NUMA_AWARE_RANDOM_STEALING
 struct NumaStealStask {
   TaskDescriptor * operator()() {
-    auto thread = Thread::getCurrentThread();
+    auto * thread = Thread::getCurrentThread();
     TaskDescriptor * task = nullptr;
 
     // Determine NUMA domain of the thief
@@ -692,8 +692,8 @@ struct StealTask : private StealTaskImpl {
 };
 
 bool ScheduleTask() {
-  auto thread = Thread::getCurrentThread();
-  auto taskPool = thread->getTaskPool();
+  auto * thread = Thread::getCurrentThread();
+  auto * taskPool = thread->getTaskPool();
   bool result = false;
 
   // Try to retrieve a task from the task pool.
@@ -719,8 +719,8 @@ bool ScheduleTask() {
 }
 
 void TaskExecutionBarrier(bool internalBarrier) {
-  auto thread = Thread::getCurrentThread();
-  auto team = thread->getTeam();
+  auto * thread = Thread::getCurrentThread();
+  auto * team = thread->getTeam();
   size_t teamSize = team->getCount();
   size_t goal = internalBarrier ? teamSize : 0;
 #if DEBUG_TASKING
@@ -739,7 +739,7 @@ void TaskExecutionBarrier(bool internalBarrier) {
 bool TaskWait() {
   // Determine the task that executes the encountered taskwait: it is the
   // currently scheduled task on the current threads.
-  auto thread = Thread::getCurrentThread();
+  auto * thread = Thread::getCurrentThread();
   TaskDescriptor * parent = thread->getCurrentTask();
 
   if (parent) {
@@ -782,8 +782,8 @@ bool TaskWait() {
 }
 
 void TaskgroupBegin() {
-  auto thread = Thread::getCurrentThread();
-  auto outer = thread->getCurrentTaskgroup();
+  auto * thread = Thread::getCurrentThread();
+  auto * outer = thread->getCurrentTaskgroup();
 
   auto * inner = memory::make_aligned_struct<Taskgroup>(outer);
   thread->setCurrentTaskgroup(inner);
@@ -795,8 +795,8 @@ void TaskgroupBegin() {
 }
 
 void TaskgroupEnd() {
-  auto thread = Thread::getCurrentThread();
-  auto taskgroup = thread->getCurrentTaskgroup();
+  auto * thread = Thread::getCurrentThread();
+  auto * taskgroup = thread->getCurrentTaskgroup();
 
 #if DEBUG_TASKING
   auto id = thread->getLocalId();
@@ -817,7 +817,7 @@ void TaskgroupEnd() {
       //   ;
     }
 
-    auto outer = taskgroup->outer;
+    auto * outer = taskgroup->outer;
     thread->setCurrentTaskgroup(outer);
   }
 }

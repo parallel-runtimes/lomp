@@ -17,15 +17,14 @@
 
 #include "debug.h"
 
-namespace lomp {
-namespace environment {
+namespace lomp::environment {
 
 bool getString(char const * var, std::string & value, const std::string & def) {
   debug_enter();
-  const char * str = std::getenv(var);
+  const auto * str = std::getenv(var);
   value = str ? std::string(str) : def;
   debug_leave();
-  return !!str;
+  return str != nullptr;
 }
 
 bool getInt(char const * var, int & value, int def) {
@@ -60,7 +59,7 @@ bool getStringWithStringArgument(
     return false;
   }
 
-  std::size_t pos = str.find(",");
+  std::size_t pos = str.find(',');
   value = std::make_pair(str.substr(0, pos), str.substr(pos + 1, str.length()));
 
   debug_leave();
@@ -85,7 +84,8 @@ bool getStringWithIntArgument(char const * var,
     int num = stoi(tmp.second);
     value = std::make_pair(str, num);
     result = true;
-  } catch (...) {
+  }
+  catch (...) {
     value = def;
     result = false;
   }
@@ -93,5 +93,5 @@ bool getStringWithIntArgument(char const * var,
   debug_leave();
   return result;
 }
-} // namespace environment
-} // namespace lomp
+
+} // namespace lomp::environment
