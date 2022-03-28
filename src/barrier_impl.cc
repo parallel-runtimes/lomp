@@ -29,44 +29,18 @@
 #include "barriers.h"
 #include "target.h"
 #include "debug.h"
+#include "memory.h"
 
 #if (DEBUG > 0)
 #include <sstream>
 #endif
 
 namespace lomp {
-// Derive publicly from this to force an aligned allocator to be used for the given object.
-// C++17 has better ways of doing this, but we're sticking to C++14...
-template <int alignment>
-class alignedAllocators {
-  static void * doAllocation(std::size_t bytes) {
-    void * res;
-    res = std::aligned_alloc(alignment, bytes);
-    if (!res) {
-      fatalError("Aligned memory allocation failed.");
-    }
-    return res;
-  }
-
-public:
-  static void * operator new[](std::size_t bytes) {
-    return doAllocation(bytes);
-  }
-  static void * operator new(std::size_t bytes) {
-    return doAllocation(bytes);
-  }
-  static void operator delete[](void * space) {
-    free(space);
-  }
-  static void operator delete(void * space) {
-    free(space);
-  }
-};
 
 // Be careful with these. They force the individual item to be cache-aligned and padded to the size of the cacheline.
 // If you want a single uint32 aligned at the start of a line with other data following it, DO NOT USE THIS!
-class AlignedUint32 : public alignedAllocators<CACHELINE_SIZE> {
-  alignas(CACHELINE_SIZE) uint32_t Value;
+class AlignedUint32 : private memory::CacheAligned {
+  alignas(CacheAligned::alignment) uint32_t Value;
 
 public:
   AlignedUint32(uint32_t v) : Value(v) {}
@@ -77,10 +51,12 @@ public:
   uint32_t operator++(int) {
     return Value++;
   }
+  using CacheAligned::operator new;
+  using CacheAligned::operator delete;
 };
 
-class AlignedAtomicUint32 : public alignedAllocators<CACHELINE_SIZE> {
-  alignas(CACHELINE_SIZE) std::atomic<uint32_t> Value;
+class AlignedAtomicUint32 : private memory::CacheAligned {
+  alignas(CacheAligned::alignment) std::atomic<uint32_t> Value;
 
 public:
   AlignedAtomicUint32(uint32_t v) : Value(v) {}
@@ -97,6 +73,8 @@ public:
   uint32_t operator++(int) {
     return Value.fetch_add(1);
   }
+  using CacheAligned::operator new;
+  using CacheAligned::operator delete;
 };
 
 // A simple broadcast operation in which all worker threads poll the
@@ -107,7 +85,7 @@ public:
 // We need a separate class to encapsulate waiting, but that will come later.
 // Similarly it won't execute tasks, which needs to be inside the waiting class.
 //
-class NaiveBroadcast : public alignedAllocators<CACHELINE_SIZE> {
+class NaiveBroadcast : private memory::CacheAligned {
   // Put the payload and the flag into the same cache line.
   CACHE_ALIGNED std::atomic<uint32_t> Flag;
   InvocationInfo const * OutlinedBody;
@@ -145,6 +123,8 @@ public:
     NextValues[me] = ~NextFlag;
     return OutlinedBody;
   }
+  using CacheAligned::operator new;
+  using CacheAligned::operator delete;
 };
 
 // A broadcast which uses a specific fan-out per cacheline. I'd expect
@@ -159,16 +139,20 @@ public:
 // to two sets of flags and a reset, though, since we couldn't do up/down
 // easily.
 template <int LBW>
-class LBWBroadcast : public alignedAllocators<CACHELINE_SIZE> {
+class LBWBroadcast : private memory::CacheAligned {
   // Shared data, sitting in a single line, we hope.
-  struct flagLine : public alignedAllocators<CACHELINE_SIZE> {
-    alignas(CACHELINE_SIZE) std::atomic<uint32_t> Flag;
+  struct flagLine : private memory::CacheAligned {
+    alignas(CacheAligned::alignment) std::atomic<uint32_t> Flag;
     InvocationInfo const * OutlinedBody;
+    using CacheAligned::operator new;
+    using CacheAligned::operator delete;
   } * goFlags;
   AlignedUint32 * NextValues;
   int NumThreads;
 
 public:
+  using CacheAligned::operator new;
+  using CacheAligned::operator delete;
   LBWBroadcast(int nThreads) : NumThreads(nThreads) {
     goFlags = new flagLine[(NumThreads + LBW - 1) / LBW];
     for (int i = 0; i < (NumThreads + LBW - 1) / LBW; i++) {
@@ -285,7 +269,7 @@ class flagCounter {
     std::atomic<uint8_t> flags[8];
   } byteWord;
   enum { numEntries = (maxCount + 7) / 8, lastEntry = numEntries - 1 };
-  alignas(CACHELINE_SIZE) byteWord data[numEntries];
+  alignas(memory::CacheAligned::alignment) byteWord data[numEntries];
   // The last word may not need all of the bytes, so we initialize
   // it so that entries which don't exist appear present.
   // That avoids a special case in the polling loop.
@@ -487,12 +471,14 @@ public:
 
 // A barrier in which threads count up or down, polling the appropriate counter.
 class AtomicUpDownBarrier : public Barrier,
-                            public alignedAllocators<CACHELINE_SIZE> {
+                            private memory::CacheAligned {
   enum { MAX_THREADS = 64 };
   AtomicUpDownCounter counters[2];
   AlignedUint32 barrierCounts[MAX_THREADS];
 
 public:
+  using CacheAligned::operator new;
+  using CacheAligned::operator delete;
   AtomicUpDownBarrier(int NumThreads) {
     for (int i = 0; i < NumThreads; i++) {
       barrierCounts[i] = 0;
@@ -847,11 +833,13 @@ public:
  */
 template <class counter, class broadcast, char const * fullName>
 class centralizedBarrier : public Barrier,
-                           public alignedAllocators<CACHELINE_SIZE> {
+                           private memory::CacheAligned {
   counter CheckedIn;
   broadcast Broadcast;
 
 public:
+  using CacheAligned::operator new;
+  using CacheAligned::operator delete;
   centralizedBarrier(int NumThreads)
       : CheckedIn(NumThreads), Broadcast(NumThreads) {}
 
@@ -994,13 +982,15 @@ FOREACH_DYNAMICTREE_BARRIER(EXPAND_DYNAMICTREE_BARRIER, LBWBroadcast<4>, LBW4)
 // We could equally make this into a template and use our other, flag
 // counter here, though that would make the barrier quite large.
 class AllToAllAtomicBarrier : public Barrier,
-                              public alignedAllocators<CACHELINE_SIZE> {
+                              private memory::CacheAligned {
   enum { MAX_THREADS = 64 };
   uint32_t NumThreads;
   AlignedAtomicUint32 flags[2][MAX_THREADS];
   AlignedUint32 sequence[MAX_THREADS];
 
 public:
+  using CacheAligned::operator new;
+  using CacheAligned::operator delete;
   AllToAllAtomicBarrier(int NThreads) : NumThreads(NThreads) {
     LOMP_ASSERT(NumThreads <= MAX_THREADS);
     for (uint32_t i = 0; i < NumThreads; i++) {
@@ -1058,7 +1048,7 @@ public:
 // Or, probably others too.
 template <int radix>
 class distributedLogBarrier : public Barrier,
-                              public alignedAllocators<CACHELINE_SIZE> {
+                              private memory::CacheAligned {
 
   // We want the derived class to be able to see into here since it
   // needs access to things like the number of threads and rounds.
@@ -1099,6 +1089,8 @@ protected:
   }
 
 public:
+  using CacheAligned::operator new;
+  using CacheAligned::operator delete;
   distributedLogBarrier(int nThreads) : NumThreads(nThreads) {
     NumRounds = ceilingLogN(radix, NumThreads);
     debug(Debug::Barriers, "distributedLogBarrier<%d> %d: %d rounds", radix,
@@ -1160,7 +1152,7 @@ class DisseminationBarrier : public distributedLogBarrier<2> {
 
 public:
   DisseminationBarrier(int numThreads) : distributedLogBarrier(numThreads) {
-    // Now add the commnication pattern which calls back to our "neighbour"
+    // Now add the communication pattern which calls back to our "neighbour"
     // method.
     computeCommunication();
   }

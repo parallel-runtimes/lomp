@@ -11,7 +11,6 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "Build type set to: ${CMAKE_BUILD_TYPE}")
 
-
 # Project languages
 enable_language(CXX)
 enable_language(C)
@@ -105,6 +104,15 @@ if(${LOMP_TARGET_ARCH} STREQUAL "x86_64")
     check_cxx_compiler_flag("-mcx16" LOMP_HAVE_CMPXCHG16B)
 endif()
 
+# Determine extension of dynamic libraries
+if (${LOMP_TARGET_OS} STREQUAL "Linux")
+    set(LOMP_SHAREDLIB_SUFFIX ".so")
+endif()
+if (${LOMP_TARGET_OS} STREQUAL "Darwin")
+   set(LOMP_SHAREDLIB_SUFFIX ".dylib")
+endif()
+message(STATUS "Shared-library extension: ${LOMP_SHAREDLIB_SUFFIX}")
+
 # Some macros to ease dealing with compiler flags
 macro(add_mrtm_flag target)
     if(LOMP_HAVE_RTM)
@@ -120,6 +128,7 @@ macro(add_mcx16_flag target)
 endmacro(add_mcx16_flag)
 
 # Find libatomic and and define macro to add where we need libatomic
+message(STATUS "Looking for libatomic: libatomic${LOMP_SHAREDLIB_SUFFIX} libatomic${LOMP_SHAREDLIB_SUFFIX}.1")
 find_library(LOMP_LIBATOMIC NAMES libatomic${LOMP_SHAREDLIB_SUFFIX}
                                   libatomic${LOMP_SHAREDLIB_SUFFIX}.1)
 message(STATUS "Found libatomic: ${LOMP_LIBATOMIC}")
@@ -159,6 +168,7 @@ include_directories(./src)
 
 # Build the runtime library
 add_subdirectory(src)
+add_subdirectory(include)
 
 if(LOMP_BUILD_EXAMPLES)
     # Build the example programs

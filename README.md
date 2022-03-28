@@ -42,7 +42,7 @@ may be an easier codebase to work with!
 
 ## Supported Target Platforms
 
-The LOMP runtime supports the following target architectures (in parenthesis we
+The LOMP runtime supports the following target architectures (in parentheses we
 show the architecture name as reported by the `uname` command):
 
 * AMD\* Processors  (x86\_64)
@@ -51,8 +51,11 @@ show the architecture name as reported by the `uname` command):
 * Intel\* Processors (x86\_64)
 * RISC-V\* Processors, 64 bit (riscv64)
 
-There is incomplete support for ARM-based Apple\* Macs (which is
-held up by an LLVM compiler [bug](https://bugs.llvm.org/show_bug.cgi?id=48885)).
+The library works with Arm 64-bit processors running macOS (announced as
+(arm64) by `uname` there), but an LLVM compiler from at least April 2021 is
+required, since there was a compiler bug(unrelated to the runtime) which broke
+OpenMP tasks there as a result of incorrect assumptions about varargs argument
+passing on that platform. (See [this bug](https://bugs.llvm.org/show_bug.cgi?id=48885) for details.)
 
 
 ## Supported OpenMP Features
@@ -120,7 +123,7 @@ If you would like to contribute any features to LOMP, please see below.
 
 ## How to Build (and Install)
 
-Here are some, hopefully useful, remarks about how you can setup LOMP on your
+Here are some, hopefully useful, remarks about how you can set up LOMP on your
 system.  The instructions come without any warranty, and may be wrong, or
 incomplete.
 
@@ -162,7 +165,7 @@ Here are the steps needed:
   you will probably need to add some options to set the appropriate compiler).
   * `cd lomp_build`
   * `cmake ../lomp`
-* Compile LOMP (depending which build system you asked cmake to create
+* Compile LOMP (depending on which build system you asked cmake to create
   build files for)
   * with GNU Make: `make`
   * with Ninja: `ninja`
@@ -186,14 +189,15 @@ Here are the steps needed:
     ```
 
 * You can also run the (tiny) test suite using the following commands (please
-  except a few failed tests for v0.1):
+  accept a few failed tests for v0.1):
   * with GNU Make: `make test`
   * with Ninja: `ninja test`
 
-The default build configuration is "Release" mode, which enables compiler optimizations.  Please see below for how to change this default.
+The default build configuration is "Release" mode, which enables compiler
+optimizations.  Please see below for how to change this default.
 
 To use LOMP with an existing code, once you have built the library, you should
-be able to use `LD_LIBRARY_PATH` on Linux (or `DYLD_LIBRARY_PATH` on MacOS) to
+be able to use `LD_LIBRARY_PATH` on Linux (or `DYLD_LIBRARY_PATH` on macOS) to
 place its directory before the system one where the production OpenMP library
 lives so that LOMP is used without needing to recompile your executable.  If
 you also set `LOMP_DEBUG=1` you should see some output that proves that you are
@@ -275,7 +279,9 @@ The following options can be set using the `cmake` command line interface:
 
 ## Installing LOMP
 
-LOMP supports to be installed using the `install` target.  The location is determined via the `-DCMAKE_INSTALL_PREFIX=<path>` configuration option for CMake.  After a successful build, the following will install LOMP
+LOMP supports to be installed using the `install` target.  The location is
+determined via the `-DCMAKE_INSTALL_PREFIX=<path>` configuration option for
+CMake.  After a successful build, the following will install LOMP
   * with GNU Make: `make install`
   * with Ninja: `ninja install`
 
@@ -315,9 +321,10 @@ its behavior:
   * `2`: print informational messages.
   * `10`: print  more details.
   * `20`: print debugging messages for LOMP threading subsystems.
-  * `30`: print debugging messages for barriers.
-  * `40`: print debugging messages for loop scheduling.
-  * `50`: print debugging messages for lock implementations.
+  * `30`: print debugging message for memory allocations.
+  * `40`: print debugging messages for barriers.
+  * `50`: print debugging messages for loop scheduling.
+  * `60`: print debugging messages for lock implementations.
   * `1000`: print debugging messages for internal function invocations.
 * `LOMP_TRACE`: Enable LOMP's internal tracing facility, setting the debug
   level to the value specified for `LOMP_TRACE`.  See `LOMP_DEBUG` for the

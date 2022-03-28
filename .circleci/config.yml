@@ -11,7 +11,7 @@ jobs:
             - run: sudo ./llvm.sh 11
             - run:
                 name: Configure CMake Runtime
-                command: cmake -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 .
+                command: cmake -DCMAKE_CXX_COMPILER=clang++-11 -DCMAKE_C_COMPILER=clang-11 -DLOMP_MICROBM_WITH_LOMP=ON .
             - run:
                 name: Build Runtime
                 command: make

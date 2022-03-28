@@ -23,7 +23,8 @@ Please describe what the expected behavior should have been.
 **Screenshots**
 If applicable, add a screenshot to help explain the issue.
 
-**Desktop (please complete the following information):**
+**Environment**
+Please describe the properties of the target machine, and which version of LOMP is broken.
 - OS: [e.g., Linux]
 - Target architecture: [e.g., RISC-V]
--  LOMP Version [e.g., 0.1]
+- LOMP Version: [e.g., 0.1]

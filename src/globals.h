@@ -19,10 +19,18 @@ extern bool RuntimeInitialized; /* Has the runtime been initialized? */
 
 extern int NumThreads;
 
+// Global Definitions
+enum class displayVerbosity {
+  disabled = 0,
+  enabled,
+  verbose,
+};
+
 // Functions.
 void initializeRuntime();
 void intializeLocks();
 double getTime();
+void displayEnvironment(displayVerbosity verbosity);
 
 } // namespace lomp
 

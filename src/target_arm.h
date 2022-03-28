@@ -42,7 +42,8 @@
 #if (LOMP_TARGET_ARCH_AARCH64)
 #if (1)
 // Disable here to test the std::chrono clock if desired.
-#define TARGET_HAS_TIMESTAMP 1
+#define TARGET_HAS_CYCLECOUNT 1
+#define TARGET_HAS_HWTICKTIME 0
 #define TARGET_HAS_CACHE_FLUSH 1
 
 // Setup functions we need for accessing the high resolution clock
@@ -62,12 +63,14 @@ inline void FlushAddress(void * addr) {
   __asm__ volatile("dc civac,%0" ::"r"(addr));
 }
 #else
-#define TARGET_HAS_TIMESTAMP 0
+#define TARGET_HAS_CYCLECOUNT 0
+#define TARGET_HAS_HWTICKTIME 0
 #define TARGET_HAS_CACHE_FLUSH 0
 #endif
 
 #elif (LOMP_TARGET_ARCH_ARMV7L)
-#define TARGET_HAS_TIMESTAMP 0
+#define TARGET_HAS_CYCLECOUNT 0
+#define TARGET_HAS_HWTICKTIME 0
 #define TARGET_HAS_CACHE_FLUSH 0
 #else
 #error Unknown ARM architedture.

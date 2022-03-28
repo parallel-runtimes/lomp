@@ -13,7 +13,6 @@
 //===----------------------------------------------------------------------===//
 #include "debug.h"
 
-#include <cstdlib>
 #include <cstring>
 #include <cstdint>
 
@@ -29,13 +28,13 @@ extern "C" {
 int32_t omp_get_thread_num(void) {
   lomp::Thread * Me = lomp::Thread::getCurrentThread();
 
-  return Me->getTeam()->inParallel() ? Me->getLocalId() : 0;
+  return Me->getTeam()->inParallel() ? static_cast<int32_t>(Me->getLocalId()) : 0;
 }
 
 int32_t omp_get_num_threads(void) {
   lomp::ThreadTeam * Team = lomp::Thread::getCurrentThread()->getTeam();
 
-  return Team->inParallel() ? Team->getCount() : 1;
+  return Team->inParallel() ? static_cast<int32_t>(Team->getCount()) : 1;
 }
 
 void omp_set_num_threads(int nthreads) {
@@ -50,7 +49,8 @@ void omp_set_num_threads(int nthreads) {
 
 // May not be right if we ever support nesting...
 int32_t omp_get_max_threads(void) {
-  return lomp::Thread::getCurrentThread()->getTeam()->getCount();
+  auto * team = lomp::Thread::getCurrentThread()->getTeam();
+  return static_cast<int32_t>(team->getCount());
 }
 
 int32_t omp_in_parallel(void) {
@@ -95,6 +95,14 @@ int omp_test_lock(omp_lock_t * lock) {
 double omp_get_wtime(void) {
   double time = lomp::getTime();
   return time;
+}
+
+void omp_display_env(int verbose) {
+  if (!lomp::RuntimeInitialized) {
+    lomp::initializeRuntime();
+  }
+  lomp::displayEnvironment(verbose ? lomp::displayVerbosity::verbose /* all ICVs */
+                                   : lomp::displayVerbosity::enabled /* OpenMP ICVs */);
 }
 
 // Functions called by the compiler itself.
@@ -161,7 +169,7 @@ void __kmpc_barrier(ident_t *, // where
   auto Barrier = Me->getTeam()->getBarrier();
 
   // Let the barrier do its stuff!
-  Barrier->fullBarrier(Me->getLocalId());
+  Barrier->fullBarrier(static_cast<int32_t>(Me->getLocalId()));
 }
 
 int32_t __kmpc_global_thread_num(ident_t *) { //where
@@ -169,7 +177,7 @@ int32_t __kmpc_global_thread_num(ident_t *) { //where
   if (UNLIKELY(!lomp::RuntimeInitialized)) {
     return 0;
   }
-  return lomp::Thread::getCurrentThread()->getGlobalId();
+  return static_cast<int32_t>(lomp::Thread::getCurrentThread()->getGlobalId());
 }
 
 int32_t __kmpc_in_parallel(ident_t *) {
@@ -328,7 +336,7 @@ void __kmpc_end_master(ident_t *, // where
 void __kmpc_critical(ident_t *, // where
                      int32_t,   // gtid
                      void * ptr) {
-  omp_lock_t * lock = (omp_lock_t *)ptr;
+  auto * lock = (omp_lock_t *)ptr;
   lomp::locks::EnterCritical(lock);
 }
 
@@ -342,7 +350,7 @@ void __kmpc_critical_with_hint(ident_t *, // where
 void __kmpc_end_critical(ident_t *, // where
                          int32_t,   // gtid
                          void * ptr) {
-  omp_lock_t * lock = (omp_lock_t *)ptr;
+  auto * lock = (omp_lock_t *)ptr;
   lomp::locks::LeaveCritical(lock);
 }
 

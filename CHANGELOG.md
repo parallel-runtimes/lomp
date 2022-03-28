@@ -1,6 +1,8 @@
 # Version "next"
+* Feature: Implement `OMP_DISPLAY_ENV` and `omp_display_env()`
 * Feature: Implement a serial version of LOMP runtime.
 * Feature: Support static-library version of LOMP
+* Internal: use aligned allocations instead of regular malloc/free & new/delete
 
 # Version 0.2
 * Feature: Add entrypoints for tasks with `if(0)` clause.
