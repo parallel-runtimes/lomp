@@ -104,6 +104,13 @@ else()
   target_link_options(pthreadSpawn PRIVATE -fopenmp)
 endif()
 
+add_executable(sched_yield sched_yield.cc ../src/stats-timing.cc ../src/util.cc)
+if(LOMP_MICROBM_WITH_LOMP)
+  target_link_libraries(sched_yield omp)
+else()
+  target_link_options(sched_yield PRIVATE -fopenmp)
+endif()
+
 add_executable(scheduling scheduling.cc ../src/stats-timing.cc ../src/util.cc)
 if(LOMP_MICROBM_WITH_LOMP)
   target_link_libraries(scheduling omp)
