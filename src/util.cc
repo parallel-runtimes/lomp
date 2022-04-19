@@ -81,7 +81,7 @@ void errPrintf(char const * Format, ...) {
     va_start(VarArgs, Format);
     Tracer->insertEvent(Format, VarArgs);
     va_end(VarArgs);
-    // No need to output the trace explicitly, since we have an atexit() hook.
+    Tracer->output(stderr);
   }
   abort();
 }

@@ -408,7 +408,7 @@ void contiguousWork<unsignedType>::initializeBalanced(unsignedType count,
                                                       uint32_t numThreads) {
   // Set up properties for the static, maximal chunk, work allocation.
   // Note that the internal representation here is based on <, rather
-  // than <= as in the canonical form. That lets (0,0) mean no work,
+  // than <= as in the canonical form. That lets (n,n) mean no work,
   // which is convenient here, since it can arise if the first thread
   // has all its work stolen before it arrives.
   auto wholeIters = count / numThreads;
@@ -423,8 +423,8 @@ void contiguousWork<unsignedType>::initializeBalanced(unsignedType count,
     b = me * wholeIters + leftover;
     e = b + wholeIters;
   }
-  base = b;
-  end = e;
+  setBase(b,std::memory_order_relaxed);
+  setEnd (e,std::memory_order_relaxed);
 }
 
 // Provide separate functions for each of the possible schedules to dispatch
@@ -569,8 +569,8 @@ int32_t dynamicLoop::dispatchNonmonotonic(Thread * myThread, int32_t * p_last,
     if (p_last) {
       *p_last = cl->isLastChunk(nextIteration);
     }
-    debug(Debug::Loops, "%d: found local work (my count now %d)", me,
-          myWork->getStarted(), cl->getCount());
+    debug(Debug::Loops, "%d: found local work %d (my count now %d)", me,
+          nextIteration, myWork->getStarted());
     return true;
   }
   // No local work, so we must look for some elsewhere.
@@ -620,7 +620,7 @@ int32_t dynamicLoop::dispatchNonmonotonic(Thread * myThread, int32_t * p_last,
       // end of the computation.
       iterationsStarted += otherWork->getStarted();
       debug(Debug::Loops,
-            "%d: see victim %d has done %d iterations; total now %d of %d", me,
+            "%d: considering victim %d which has done %d iterations; total now %d of %d", me,
             v, otherWork->getStarted(), iterationsStarted, totalIterations);
 
       LOMP_ASSERT(iterationsStarted <= totalIterations);
@@ -658,8 +658,8 @@ int32_t dynamicLoop::dispatchNonmonotonic(Thread * myThread, int32_t * p_last,
         if (p_last) {
           *p_last = cl->isLastChunk(stolenB);
         }
-        debug(Debug::Loops, "%d: succesfuly stole(%u:%u) from %d", me, stolenB,
-              stolenE, v);
+        debug(Debug::Loops, "%d: succesfuly stole(%u:%u) from %d, returning %d", me, stolenB,
+              stolenE, v, stolenB);
         return true;
       }
       else {
@@ -708,10 +708,11 @@ void dynamicLoop::setSchedule(int32_t sched) {
   }
 }
 
-#if (1)
+#if (0)
 // For simplicity use compare_exchange here as well as in the steal operation.
 // This should not be *too* bad, since most of the time stealing is not happening, and
 // a thread is operating on local data.
+// The smarter code now appears to work, so this is no longer needed.
 template <typename unsignedType>
 bool contiguousWork<unsignedType>::incrementBase(unsignedType * basep) {
   for (;;) {
@@ -736,7 +737,6 @@ bool contiguousWork<unsignedType>::incrementBase(unsignedType * basep) {
   }
 }
 #else
-#error Optimized incrementBase still seems broken on X86...
 // Do a local increment (which need not be atomic), but check
 // afterwards to see whether someone stole from us. This should be
 // faster than the code above, since it means that stealing need not
@@ -747,39 +747,79 @@ bool contiguousWork<unsignedType>::incrementBase(unsignedType * basep) {
 // it means "no work".
 template <typename unsignedType>
 bool contiguousWork<unsignedType>::incrementBase(unsignedType * basep) {
-  for (;;) {
-    auto oldBase = getBase();
-    auto oldEnd = getEnd();
-    // Have we run out of iterations?
-    if (oldBase >= oldEnd) {
-      return false;
-    }
-    setBase(oldBase + 1);
-    auto newEnd = getEnd();
-    // Did someone steal the work we thought we were going to take?
-    if (UNLIKELY(newEnd == oldBase)) {
-      // Someone stole our last iteration while we were trying to claim it.
-      return false;
-    }
-    else {
-      // We got it.
-      *basep = oldBase;
-      return true;
-    }
+  auto oldBase = getBase();
+  auto oldEnd  = getEnd();
+
+  // Have we run out of iterations?
+  if (UNLIKELY(oldBase >= oldEnd)) {
+    debug(Debug::Loops,
+            "%d: no local iterations available(%u:%u) => no iterations available",
+            Thread::getCurrentThread()->getLocalId(), oldBase, oldEnd);
+    return false;
   }
+  // Update the base value.
+  // We need to ensure that the subsequent load does not float above this,
+  // so need sequential consistency to prevent that from happening.
+  // (Which took me about a week to work out...)
+  // Release consistency ensures earlier stores are complete, but does
+  // not prevent the load from floating up above the store.
+  setBase(oldBase + 1, std::memory_order_seq_cst);
+
+  // Load the end again, so that we can see if it changed while we were
+  // incrementing the base. This thread never moves the end, but other
+  // threads do.
+  auto newEnd = getEnd();
+  
+  // Did someone steal the work we thought we were going to take?
+  if (UNLIKELY(newEnd == oldBase)) {
+    // Someone stole our last iteration while we were trying to claim it.
+    debug(Debug::Loops,
+            "%d: last local iterations stolen (%u:%u) => no iterations available",
+            Thread::getCurrentThread()->getLocalId(), oldBase, newEnd);
+    return false;
+  }
+
+  // We got it. It doesn't matter if the end moved down while we were
+  // incrementing the base, as long as it is still above the base we
+  // claimed.  (Say we're claiming iteration zero, while some other thread
+  // steals iterations [100,200], that's fine. It doesn't impact on us
+  // claiming iteration zero.)
+  debug(Debug::Loops,
+	"%d: got local iteration %d",
+            Thread::getCurrentThread()->getLocalId(), oldBase);
+  *basep = oldBase;
+  return true;
 }
 #endif
 // Try to steal from this chunk of work.
+//
+// It may be possible to be smarter here too, and avoid the use of the double-width
+// compare-exchange.
+// We would still need a single-width cmpxchg to handle the race between multiple
+// stealing threads all trying to steal from teh same victin at the same time,
+// but the other case (where the owner thread is incrementing the base while we
+// are pulling down the end) should be amenable to teh same type of logic that
+// we have in the increment. I.e. perform the steal (move the end down) and then check whether
+// the base has moved up to a point that conflicts with what we just did.
+// The main problem there is likely that we could move down well below where
+// we ought to be (if the owner gets in a lot of increments between us reading
+// the end and lowering it), so we'd have to be carefule about our comparisons.
+// Of course, this may all be utterly in the nooise for real code performance!
+//  
 template <typename unsignedType>
 bool contiguousWork<unsignedType>::trySteal(unsignedType * basep,
                                             unsignedType * endp) {
+  // Load this once; after that the compare_exchange updates it.
+  contiguousWork oldValues(this);
   for (;;) {
-    contiguousWork oldValues(this);
-    auto oldEnd = oldValues.end;
-    auto oldBase = oldValues.base;
+    // oldValues is local, so no-one else is looking at it and
+    // we can use a relaxed memory order here.
+    auto oldBase = oldValues.getBase(std::memory_order_relaxed);
+    auto oldEnd  = oldValues.getEnd(std::memory_order_relaxed);
+
     // We need this >= to handle the race resolution case mentioned above,
     // which can lead to (1,0) (or equivalent) appearing...
-    if (oldBase >= oldEnd) {
+    if (UNLIKELY(oldBase >= oldEnd)) {
       debug(Debug::Loops,
             "%d: failed to steal (%u:%u) => no iterations available",
             Thread::getCurrentThread()->getLocalId(), oldBase, oldEnd);
@@ -789,28 +829,39 @@ bool contiguousWork<unsignedType>::trySteal(unsignedType * basep,
     // distribute stealable work across the machine, reducing
     // contention and meaning that stealing threads need to look less
     // far to find it.
+    // Other options are also possible, of course; however, which is optimal
+    // is likely to be workload dependent, and stealing half seems a reasonable
+    // approach.
     auto available = oldEnd - oldBase;
     // Round up so that we will steal the last available iteration.
     auto newEnd = oldEnd - (available + 1) / 2;
     contiguousWork newValues(oldBase, newEnd);
+
     // Did anything change while we were calculating our parameters?
     // This is slightly over-cautious. If we're stealing iterations
     // 1000:2000 it doesn't matter if the owner claims iteration zero, so
-    // we should be able to be smarter about this.
-    if (atomicPair.compare_exchange_strong(oldValues.pair, newValues.pair)) {
-      {
-        // Nothing changed, so we succeeded in stealing the relevant swag.
-        *basep = newEnd;
-        *endp = oldEnd;
-        debug(Debug::Loops, "%d: stole(%u:%u) left (%u:%u)",
-              Thread::getCurrentThread()->getLocalId(), newEnd, oldEnd, oldBase,
-              newEnd);
-        return true;
-      }
+    // we might be able to be smarter about this.
+    // Since this is inside a retry loop we can use the weak compare_exchange
+    // as recommended by the C++ folk. (It may sometimes fail when it could
+    // succeeed, but is still supposedly more efficient)
+    if (atomicPair.compare_exchange_weak(oldValues.pair,newValues.pair)) {
+      // Compare exchange succeeded, so nothing changed while we were thinking about this
+      // and we have successfully stolen the value and updated the shared state.
+      *basep = newEnd;
+      *endp = oldEnd;
+      debug(Debug::Loops, "%d: stole(%u:%u) left (%u:%u)",
+	    Thread::getCurrentThread()->getLocalId(), newEnd, oldEnd, oldBase,
+	    newEnd);
+      return true;
+    } else {
+      // The compare_exchange failed, so someone else changed something (or
+      // the system just doesn't like us, since we're using the weak version!)
+      // The compare_exchange updates oldValues, so we can go around and try again
+      // without explicitly reloading them ourselves.
+      debug(Debug::Loops,"%d: steal failed", Thread::getCurrentThread()->getLocalId());
     }
   }
 }
-
 } // namespace lomp
 
 // Interface functions called by the compiler.

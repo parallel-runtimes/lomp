@@ -47,6 +47,7 @@ public:
 };
 
 static bool debug = getenv("LOMP_DEBUG");
+static bool tracingEnabled = getenv("LOMP_TRACE");
 
 static int check(std::unordered_map<uint32_t, uint32_t> & referenced, int base,
                  int end, int incr) {
@@ -103,7 +104,11 @@ static bool runLoop(char const * name, omp_sched_t schedule, int base, int end,
   fprintf(stderr, "Testing schedule(%s,%d): for(i=%d; i%c%d; i += %d)\n", name,
           chunk, base, (incr < 0 ? '>' : '<'), end, incr);
   int failures = 0;
-
+  auto numThreads = omp_get_max_threads();
+  int counts[numThreads];
+  for (auto i=0; i<numThreads; i++)
+    counts[i] = 0;
+  
 #pragma omp parallel
   {
     int me = omp_get_thread_num();
@@ -114,6 +119,7 @@ static bool runLoop(char const * name, omp_sched_t schedule, int base, int end,
       for (int i = base; i < end; i += incr) {
         if (debug)
           fprintf(stderr, "%d: i == %d\n", me, i);
+	counts[me]++;
         int prev = referenced.lookup(i);
         if (prev != -1) {
           fprintf(stderr, "  index %d executed by %d AND %d\n", i, prev, me);
@@ -121,24 +127,21 @@ static bool runLoop(char const * name, omp_sched_t schedule, int base, int end,
           failures++;
         }
         referenced.insert(i, me);
-        if (i == base)
-          sleep(1);
       }
     }
     else {
-#pragma omp for schedule(static)
+#pragma omp for schedule(runtime)
       for (int i = base; i > end; i += incr) {
         if (debug)
           fprintf(stderr, "%d: i == %d\n", me, i);
-        int prev = referenced.lookup(i);
+	counts[me]++;
+        auto prev = referenced.lookup(i);
         if (prev != -1) {
           fprintf(stderr, "  index %d executed by %d AND %d\n", i, prev, me);
 #pragma omp atomic
           failures++;
         }
         referenced.insert(i, me);
-        if (i == base)
-          sleep(1);
       }
     }
   }
@@ -146,6 +149,20 @@ static bool runLoop(char const * name, omp_sched_t schedule, int base, int end,
   fprintf(stderr, "schedule(%s,%d): for(i=%d; i%c%d; i += %d): %s\n", name,
           chunk, base, (incr < 0 ? '>' : '<'), end, incr,
           failures ? "***FAILED***" : "OK");
+
+  printf ("Thread, Count\n");
+  int total = 0;
+  for (auto i=0; i<numThreads; i++) {
+    total += counts[i];
+  }
+  for (auto i=0; i<numThreads; i++) {
+    printf("  %4d,  %4d (%5.1f%%)\n", i, counts[i], (100.*counts[i])/total);
+  }
+  if (failures != 0 && tracingEnabled) {
+    exit(-1);  // We want to get out soon so that the trace is not owverwritten.
+    // The trace handler has an atexit() call so will print when we exit.
+  }
+
   return failures != 0;
 }
 
@@ -181,12 +198,10 @@ static int testSchedule(scheduleInfo * sch) {
 
   for (int i = 0; i < nLoops; i++) {
     auto loop = &loops[i];
-
     failures += runLoop(sch->name, sch->schedule, loop->base, loop->end,
-                        loop->incr, loop->chunk)
-                    ? 1
-                    : 0;
+			loop->incr, loop->chunk) ? 1:0;
   }
+
   return failures;
 }
 

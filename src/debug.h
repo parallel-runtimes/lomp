@@ -14,7 +14,7 @@
 
 #include "globals.h"
 
-/// Check \p cond and aborts if it is not true.
+/// Checks \p cond and aborts if it is not true.
 #define LOMP_ASSERT(cond)                                                      \
   do {                                                                         \
     if (UNLIKELY(!(cond))) {                                                   \
@@ -39,11 +39,11 @@ enum Debug {
   Info = 2, /* NUMA info and so on. */
   Detailed = 10,
   // Switch around when debugging specific subsystems so that you can get info from only the subsystem you want.
-  Reduction = 15,
-  Threads = 20,
-  MemoryAllocation = 30,
-  Barriers = 40,
-  Loops = 50,
+  Loops = 15,
+  Reduction = 20,
+  Threads = 30,
+  MemoryAllocation = 40,
+  Barriers = 50,
   Locks = 60,
   Functions = 1000,
 };

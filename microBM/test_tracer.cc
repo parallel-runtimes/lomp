@@ -11,7 +11,7 @@
 
 #include <omp.h>
 #include <cstdio>
-#define EVENT_TRACE_ENABLED 1
+#define DEBUG 1
 #include "event-trace.h"
 
 int main(int, char **) {
