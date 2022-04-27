@@ -45,8 +45,9 @@ void displayEnvironmentVariable(const std::string & name) {
 }
 
 void displayEnvironment(displayVerbosity verbosity) {
-  auto standardDisplay = {"OMP_NUM_THREADS","OMP_SCHEDULE", "OMP_DISPLAY_ENV"};
-  auto verboseDisplay = {"LOMP_LOCK_KIND", "LOMP_BARRIER_KIND", "LOMP_DEBUG", "LOMP_TRACE"};
+  auto standardDisplay = {"OMP_NUM_THREADS", "OMP_SCHEDULE", "OMP_DISPLAY_ENV"};
+  auto verboseDisplay = {"LOMP_LOCK_KIND", "LOMP_BARRIER_KIND", "LOMP_DEBUG",
+                         "LOMP_TRACE"};
   printf("OPENMP DISPLAY ENVIRONMENT\n");
   printf("  _OPENMP='%d'\n", 0);
   for (auto var : standardDisplay) {

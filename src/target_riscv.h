@@ -45,7 +45,7 @@ inline std::uint64_t readCycleCount() {
 #if __riscv_xlen != 64
 #warning "Function readCycleCount() not implemented for RISC-V 32-bit"
 #else
-  __asm__ volatile ("rdcycle %0": "=r"(res));
+  __asm__ volatile("rdcycle %0" : "=r"(res));
 #endif
   return res;
 }

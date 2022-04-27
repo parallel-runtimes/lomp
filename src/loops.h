@@ -167,11 +167,12 @@ class contiguousWork {
   auto setEnd(unsignedType e, std::memory_order order) {
     return ab.atomicEnd.store(e, order);
   }
+
 public:
   contiguousWork() {}
   contiguousWork(unsignedType b, unsignedType e)
       : stealing(false), iterationsStarted(0) {
-    assign(b,e);
+    assign(b, e);
   }
   contiguousWork(contiguousWork * other) {
     // N.B. NOT loaded atomically over both parts, but that's fine, since when we update
@@ -194,7 +195,7 @@ public:
   void assign(unsignedType b, unsignedType e) {
     // No need for atomicity here; we're copying into a local value.
     ab.atomicBase.store(b, std::memory_order_relaxed);
-    ab.atomicEnd.store (e, std::memory_order_relaxed);
+    ab.atomicEnd.store(e, std::memory_order_relaxed);
   }
   void zeroStarted() {
     iterationsStarted.store(0, std::memory_order_release);
@@ -215,7 +216,7 @@ public:
   }
   // Only the owning thread modifies the started field so this need not be atomic.
   void incrStarted() {
-    iterationsStarted.store(getStarted()+1, std::memory_order_release);
+    iterationsStarted.store(getStarted() + 1, std::memory_order_release);
   }
 };
 

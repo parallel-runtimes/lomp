@@ -106,9 +106,9 @@ static bool runLoop(char const * name, omp_sched_t schedule, int base, int end,
   int failures = 0;
   auto numThreads = omp_get_max_threads();
   int counts[numThreads];
-  for (auto i=0; i<numThreads; i++)
+  for (auto i = 0; i < numThreads; i++)
     counts[i] = 0;
-  
+
 #pragma omp parallel
   {
     int me = omp_get_thread_num();
@@ -119,7 +119,7 @@ static bool runLoop(char const * name, omp_sched_t schedule, int base, int end,
       for (int i = base; i < end; i += incr) {
         if (debug)
           fprintf(stderr, "%d: i == %d\n", me, i);
-	counts[me]++;
+        counts[me]++;
         int prev = referenced.lookup(i);
         if (prev != -1) {
           fprintf(stderr, "  index %d executed by %d AND %d\n", i, prev, me);
@@ -134,7 +134,7 @@ static bool runLoop(char const * name, omp_sched_t schedule, int base, int end,
       for (int i = base; i > end; i += incr) {
         if (debug)
           fprintf(stderr, "%d: i == %d\n", me, i);
-	counts[me]++;
+        counts[me]++;
         auto prev = referenced.lookup(i);
         if (prev != -1) {
           fprintf(stderr, "  index %d executed by %d AND %d\n", i, prev, me);
@@ -150,16 +150,16 @@ static bool runLoop(char const * name, omp_sched_t schedule, int base, int end,
           chunk, base, (incr < 0 ? '>' : '<'), end, incr,
           failures ? "***FAILED***" : "OK");
 
-  printf ("Thread, Count\n");
+  printf("Thread, Count\n");
   int total = 0;
-  for (auto i=0; i<numThreads; i++) {
+  for (auto i = 0; i < numThreads; i++) {
     total += counts[i];
   }
-  for (auto i=0; i<numThreads; i++) {
-    printf("  %4d,  %4d (%5.1f%%)\n", i, counts[i], (100.*counts[i])/total);
+  for (auto i = 0; i < numThreads; i++) {
+    printf("  %4d,  %4d (%5.1f%%)\n", i, counts[i], (100. * counts[i]) / total);
   }
   if (failures != 0 && tracingEnabled) {
-    exit(-1);  // We want to get out soon so that the trace is not owverwritten.
+    exit(-1); // We want to get out soon so that the trace is not owverwritten.
     // The trace handler has an atexit() call so will print when we exit.
   }
 
@@ -187,7 +187,7 @@ static struct scheduleInfo {
     {"guided", omp_sched_guided},
     {"monotonic:guided", omp_sched_t(omp_sched_guided | omp_sched_monotonic)},
     {"dynamic", omp_sched_dynamic}, /* == nonmonotonic:dynamic */
-    {"monotonic:dynamic", omp_sched_t(omp_sched_dynamic | omp_sched_monotonic)}, 
+    {"monotonic:dynamic", omp_sched_t(omp_sched_dynamic | omp_sched_monotonic)},
     /* hack for testing: all iterations allocated to thread zero, then behave as nonmnotonic */
     {"imbalanced", omp_sched_t(32)},
 };
@@ -199,7 +199,9 @@ static int testSchedule(scheduleInfo * sch) {
   for (int i = 0; i < nLoops; i++) {
     auto loop = &loops[i];
     failures += runLoop(sch->name, sch->schedule, loop->base, loop->end,
-			loop->incr, loop->chunk) ? 1:0;
+                        loop->incr, loop->chunk)
+                    ? 1
+                    : 0;
   }
 
   return failures;

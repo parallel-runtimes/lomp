@@ -211,7 +211,8 @@ struct TaskPoolLinkedListLIFO {
 
 private:
   struct ListNode : private memory::CacheAligned {
-    ListNode(ListNode * next_, TaskDescriptor * task_) : next(next_), task(task_) {}
+    ListNode(ListNode * next_, TaskDescriptor * task_)
+        : next(next_), task(task_) {}
 
     ListNode * next;
     TaskDescriptor * task;
@@ -284,7 +285,8 @@ struct TaskPoolRestrictedLinkedListLIFO {
 
 private:
   struct ListNode : private memory::CacheAligned {
-    ListNode(ListNode * next_, TaskDescriptor * task_) : next(next_), task(task_) {}
+    ListNode(ListNode * next_, TaskDescriptor * task_)
+        : next(next_), task(task_) {}
 
     ListNode * next;
     TaskDescriptor * task;
@@ -359,9 +361,11 @@ size_t ComputeAllocSize(size_t sizeOfTaskClosure, size_t sizeOfShareds) {
 
 TaskDescriptor * AllocateTask(size_t sizeOfTaskClosure, size_t sizeOfShareds) {
   auto allocSize = ComputeAllocSize(sizeOfTaskClosure, sizeOfShareds);
-  auto * task = static_cast<TaskDescriptor *>(memory::make_aligned_chunk(allocSize));
+  auto * task =
+      static_cast<TaskDescriptor *>(memory::make_aligned_chunk(allocSize));
   if (!task) {
-    lomp::fatalError("Could not allocate %d bytes for task descriptor", allocSize);
+    lomp::fatalError("Could not allocate %d bytes for task descriptor",
+                     allocSize);
   }
 #if DEBUG_TASKING
   memset(static_cast<void *>(task), 0, allocSize);
@@ -431,7 +435,7 @@ void PrepareTask(TaskDescriptor * task) {
     assert(task->metadata.thread->childTasks.load() >= 0);
     task->metadata.thread->childTasks++;
   }
- 
+
   // Now we have to also record this task as active for a potentially active
   // taskgroup
   if (auto * taskgroup = task->metadata.taskgroup; taskgroup) {
@@ -442,11 +446,12 @@ void PrepareTask(TaskDescriptor * task) {
 
 bool StoreTask(TaskDescriptor * task) {
   auto * taskPool = Thread::getCurrentThread()->getTaskPool();
-  
+
   // Try to put the task into the pool.
   if (taskPool->put(task)) {
     return true;
-  } else {
+  }
+  else {
     // There was no free slot in the task pool. Execute the task immediately,
     // to avoid a stall of execution.
     InvokeTask(task);

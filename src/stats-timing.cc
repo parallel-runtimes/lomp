@@ -124,8 +124,8 @@ std::string CPUModelName() {
     char line[256];
     while (fgets(&line[0], sizeof(line), f) != nullptr) {
       if (strncmp("model name\t: ", &line[0], 13) == 0) {
-	fclose(f);
-	return std::string(&line[13]);
+        fclose(f);
+        return std::string(&line[13]);
       }
     }
     fclose(f);
@@ -141,7 +141,7 @@ std::string CPUModelName() {
     return LOMP_TARGET_ARCH_NAME;
   }
 #endif /* Operating systems */
-#if (LOMP_TARGET_ARCH_AARCH64)  
+#if (LOMP_TARGET_ARCH_AARCH64)
   // Try the AArch64 MIDR_EL1 register; we might be able to work it out from there.
   // https://developer.arm.com/documentation/ddi0595/2020-12/AArch64-Registers/MIDR-EL1--Main-ID-Register
   struct EL1 {
@@ -185,7 +185,7 @@ std::string CPUModelName() {
 
   // RISC-V may also have some trickery; Google Is Your Friend...
   return LOMP_TARGET_ARCH_NAME;
-#endif  
+#endif
 }
 #endif /* LOMP_TARGET_ARCH_X86_64 */
 } // namespace Target

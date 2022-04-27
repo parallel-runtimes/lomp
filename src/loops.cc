@@ -30,13 +30,15 @@ static struct {
     // but translate static chunked back to static on output.
     {"static", kmp_sch_static_chunked, omp_sched_static},
     // Ignore monotonicity specification on static schedules
-    {"monotonic:static", kmp_sch_static, omp_sched_t(omp_sched_static | omp_sched_monotonic)},
+    {"monotonic:static", kmp_sch_static,
+     omp_sched_t(omp_sched_static | omp_sched_monotonic)},
     {"nonmonotonic:static", kmp_sch_static, omp_sched_static},
     // Auto => static internally
     {"auto", kmp_sch_static, omp_sched_auto},
     // Ignore specification of monotonicity on guided scheules.
     {"guided", kmp_sch_guided_chunked, omp_sched_guided},
-    {"monotonic:guided", kmp_sch_guided_chunked, omp_sched_t(omp_sched_guided | omp_sched_monotonic)},
+    {"monotonic:guided", kmp_sch_guided_chunked,
+     omp_sched_t(omp_sched_guided | omp_sched_monotonic)},
     {"nonmonotonic:guided", kmp_sch_guided_chunked, omp_sched_guided},
     // Observe monotonicity on dynamic schedule.
     {"dynamic",
@@ -423,8 +425,8 @@ void contiguousWork<unsignedType>::initializeBalanced(unsignedType count,
     b = me * wholeIters + leftover;
     e = b + wholeIters;
   }
-  setBase(b,std::memory_order_relaxed);
-  setEnd (e,std::memory_order_relaxed);
+  setBase(b, std::memory_order_relaxed);
+  setEnd(e, std::memory_order_relaxed);
 }
 
 // Provide separate functions for each of the possible schedules to dispatch
@@ -620,8 +622,9 @@ int32_t dynamicLoop::dispatchNonmonotonic(Thread * myThread, int32_t * p_last,
       // end of the computation.
       iterationsStarted += otherWork->getStarted();
       debug(Debug::Loops,
-            "%d: considering victim %d which has done %d iterations; total now %d of %d", me,
-            v, otherWork->getStarted(), iterationsStarted, totalIterations);
+            "%d: considering victim %d which has done %d iterations; total now "
+            "%d of %d",
+            me, v, otherWork->getStarted(), iterationsStarted, totalIterations);
 
       LOMP_ASSERT(iterationsStarted <= totalIterations);
 
@@ -658,8 +661,8 @@ int32_t dynamicLoop::dispatchNonmonotonic(Thread * myThread, int32_t * p_last,
         if (p_last) {
           *p_last = cl->isLastChunk(stolenB);
         }
-        debug(Debug::Loops, "%d: succesfuly stole(%u:%u) from %d, returning %d", me, stolenB,
-              stolenE, v, stolenB);
+        debug(Debug::Loops, "%d: succesfuly stole(%u:%u) from %d, returning %d",
+              me, stolenB, stolenE, v, stolenB);
         return true;
       }
       else {
@@ -708,35 +711,6 @@ void dynamicLoop::setSchedule(int32_t sched) {
   }
 }
 
-#if (0)
-// For simplicity use compare_exchange here as well as in the steal operation.
-// This should not be *too* bad, since most of the time stealing is not happening, and
-// a thread is operating on local data.
-// The smarter code now appears to work, so this is no longer needed.
-template <typename unsignedType>
-bool contiguousWork<unsignedType>::incrementBase(unsignedType * basep) {
-  for (;;) {
-    contiguousWork oldValues(this);
-    auto oldBase = oldValues.base;
-    auto oldEnd = oldValues.end;
-    // Have we run out of iterations?
-    if (oldBase >= oldEnd) {
-      return false;
-    }
-    auto newBase = oldBase + 1;
-    contiguousWork newValues(newBase, oldEnd);
-    // Did anything change while we were calculating our parameters?
-    if (atomicPair.compare_exchange_strong(oldValues.pair, newValues.pair)) {
-      {
-        // Nothing changed, we succeeded in incrementing the base without anything
-        // else changing around us.
-        *basep = oldBase;
-        return true;
-      }
-    }
-  }
-}
-#else
 // Do a local increment (which need not be atomic), but check
 // afterwards to see whether someone stole from us. This should be
 // faster than the code above, since it means that stealing need not
@@ -748,13 +722,13 @@ bool contiguousWork<unsignedType>::incrementBase(unsignedType * basep) {
 template <typename unsignedType>
 bool contiguousWork<unsignedType>::incrementBase(unsignedType * basep) {
   auto oldBase = getBase();
-  auto oldEnd  = getEnd();
+  auto oldEnd = getEnd();
 
   // Have we run out of iterations?
   if (UNLIKELY(oldBase >= oldEnd)) {
     debug(Debug::Loops,
-            "%d: no local iterations available(%u:%u) => no iterations available",
-            Thread::getCurrentThread()->getLocalId(), oldBase, oldEnd);
+          "%d: no local iterations available(%u:%u) => no iterations available",
+          Thread::getCurrentThread()->getLocalId(), oldBase, oldEnd);
     return false;
   }
   // Update the base value.
@@ -769,13 +743,13 @@ bool contiguousWork<unsignedType>::incrementBase(unsignedType * basep) {
   // incrementing the base. This thread never moves the end, but other
   // threads do.
   auto newEnd = getEnd();
-  
+
   // Did someone steal the work we thought we were going to take?
   if (UNLIKELY(newEnd == oldBase)) {
     // Someone stole our last iteration while we were trying to claim it.
     debug(Debug::Loops,
-            "%d: last local iterations stolen (%u:%u) => no iterations available",
-            Thread::getCurrentThread()->getLocalId(), oldBase, newEnd);
+          "%d: last local iterations stolen (%u:%u) => no iterations available",
+          Thread::getCurrentThread()->getLocalId(), oldBase, newEnd);
     return false;
   }
 
@@ -784,13 +758,12 @@ bool contiguousWork<unsignedType>::incrementBase(unsignedType * basep) {
   // claimed.  (Say we're claiming iteration zero, while some other thread
   // steals iterations [100,200], that's fine. It doesn't impact on us
   // claiming iteration zero.)
-  debug(Debug::Loops,
-	"%d: got local iteration %d",
-            Thread::getCurrentThread()->getLocalId(), oldBase);
+  debug(Debug::Loops, "%d: got local iteration %d",
+        Thread::getCurrentThread()->getLocalId(), oldBase);
   *basep = oldBase;
   return true;
 }
-#endif
+
 // Try to steal from this chunk of work.
 //
 // It may be possible to be smarter here too, and avoid the use of the double-width
@@ -805,7 +778,7 @@ bool contiguousWork<unsignedType>::incrementBase(unsignedType * basep) {
 // we ought to be (if the owner gets in a lot of increments between us reading
 // the end and lowering it), so we'd have to be carefule about our comparisons.
 // Of course, this may all be utterly in the nooise for real code performance!
-//  
+//
 template <typename unsignedType>
 bool contiguousWork<unsignedType>::trySteal(unsignedType * basep,
                                             unsignedType * endp) {
@@ -815,7 +788,7 @@ bool contiguousWork<unsignedType>::trySteal(unsignedType * basep,
     // oldValues is local, so no-one else is looking at it and
     // we can use a relaxed memory order here.
     auto oldBase = oldValues.getBase(std::memory_order_relaxed);
-    auto oldEnd  = oldValues.getEnd(std::memory_order_relaxed);
+    auto oldEnd = oldValues.getEnd(std::memory_order_relaxed);
 
     // We need this >= to handle the race resolution case mentioned above,
     // which can lead to (1,0) (or equivalent) appearing...
@@ -844,21 +817,23 @@ bool contiguousWork<unsignedType>::trySteal(unsignedType * basep,
     // Since this is inside a retry loop we can use the weak compare_exchange
     // as recommended by the C++ folk. (It may sometimes fail when it could
     // succeeed, but is still supposedly more efficient)
-    if (atomicPair.compare_exchange_weak(oldValues.pair,newValues.pair)) {
+    if (atomicPair.compare_exchange_weak(oldValues.pair, newValues.pair)) {
       // Compare exchange succeeded, so nothing changed while we were thinking about this
       // and we have successfully stolen the value and updated the shared state.
       *basep = newEnd;
       *endp = oldEnd;
       debug(Debug::Loops, "%d: stole(%u:%u) left (%u:%u)",
-	    Thread::getCurrentThread()->getLocalId(), newEnd, oldEnd, oldBase,
-	    newEnd);
+            Thread::getCurrentThread()->getLocalId(), newEnd, oldEnd, oldBase,
+            newEnd);
       return true;
-    } else {
+    }
+    else {
       // The compare_exchange failed, so someone else changed something (or
       // the system just doesn't like us, since we're using the weak version!)
       // The compare_exchange updates oldValues, so we can go around and try again
       // without explicitly reloading them ourselves.
-      debug(Debug::Loops,"%d: steal failed", Thread::getCurrentThread()->getLocalId());
+      debug(Debug::Loops, "%d: steal failed",
+            Thread::getCurrentThread()->getLocalId());
     }
   }
 }
