@@ -84,8 +84,7 @@ bool getStringWithIntArgument(char const * var,
     int num = stoi(tmp.second);
     value = std::make_pair(str, num);
     result = true;
-  }
-  catch (...) {
+  } catch (...) {
     value = def;
     result = false;
   }

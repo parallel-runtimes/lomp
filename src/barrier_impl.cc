@@ -470,8 +470,7 @@ public:
 // (Need to use "after" for the comparison to avoid overflow issues...)
 
 // A barrier in which threads count up or down, polling the appropriate counter.
-class AtomicUpDownBarrier : public Barrier,
-                            private memory::CacheAligned {
+class AtomicUpDownBarrier : public Barrier, private memory::CacheAligned {
   enum { MAX_THREADS = 64 };
   AtomicUpDownCounter counters[2];
   AlignedUint32 barrierCounts[MAX_THREADS];
@@ -832,8 +831,7 @@ public:
  * in the LBW broadcast, we can rapidly produce many many barriers!
  */
 template <class counter, class broadcast, char const * fullName>
-class centralizedBarrier : public Barrier,
-                           private memory::CacheAligned {
+class centralizedBarrier : public Barrier, private memory::CacheAligned {
   counter CheckedIn;
   broadcast Broadcast;
 
@@ -981,8 +979,7 @@ FOREACH_DYNAMICTREE_BARRIER(EXPAND_DYNAMICTREE_BARRIER, LBWBroadcast<4>, LBW4)
 // An all to all barrier. We use an atomic counter on each thread
 // We could equally make this into a template and use our other, flag
 // counter here, though that would make the barrier quite large.
-class AllToAllAtomicBarrier : public Barrier,
-                              private memory::CacheAligned {
+class AllToAllAtomicBarrier : public Barrier, private memory::CacheAligned {
   enum { MAX_THREADS = 64 };
   uint32_t NumThreads;
   AlignedAtomicUint32 flags[2][MAX_THREADS];
@@ -1047,8 +1044,7 @@ public:
 // be used to build dissemination or hypercube barriers.
 // Or, probably others too.
 template <int radix>
-class distributedLogBarrier : public Barrier,
-                              private memory::CacheAligned {
+class distributedLogBarrier : public Barrier, private memory::CacheAligned {
 
   // We want the derived class to be able to see into here since it
   // needs access to things like the number of threads and rounds.

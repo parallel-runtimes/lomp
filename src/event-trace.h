@@ -68,6 +68,11 @@ public:
   eventTracer() : nextEvent(0), locked(false) {}
   ~eventTracer() {}
 
+  void reset() {
+    for (int i = 0; i < numEvents; i++)
+      events[i].release();
+  }
+
   void insertEvent(char const * f, ...) {
     va_list args;
     va_start(args, f);

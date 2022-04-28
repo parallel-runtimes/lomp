@@ -45,7 +45,7 @@ struct TaskDescriptor {
     /* task descriptor for task management */
     Flags flags;
     TaskDescriptor * parent; /* pointer to the parent that created this task */
-    Thread * thread; /* pointer to the thread that create the task */
+    Thread * thread;         /* pointer to the thread that create the task */
     std::atomic<int>
         childTasks; /* number of child tasks to (potentially) wait for */
     Taskgroup * taskgroup;

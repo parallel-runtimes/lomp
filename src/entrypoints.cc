@@ -28,7 +28,8 @@ extern "C" {
 int32_t omp_get_thread_num(void) {
   lomp::Thread * Me = lomp::Thread::getCurrentThread();
 
-  return Me->getTeam()->inParallel() ? static_cast<int32_t>(Me->getLocalId()) : 0;
+  return Me->getTeam()->inParallel() ? static_cast<int32_t>(Me->getLocalId())
+                                     : 0;
 }
 
 int32_t omp_get_num_threads(void) {
@@ -101,8 +102,9 @@ void omp_display_env(int verbose) {
   if (!lomp::RuntimeInitialized) {
     lomp::initializeRuntime();
   }
-  lomp::displayEnvironment(verbose ? lomp::displayVerbosity::verbose /* all ICVs */
-                                   : lomp::displayVerbosity::enabled /* OpenMP ICVs */);
+  lomp::displayEnvironment(
+      verbose ? lomp::displayVerbosity::verbose /* all ICVs */
+              : lomp::displayVerbosity::enabled /* OpenMP ICVs */);
 }
 
 // Functions called by the compiler itself.
@@ -231,9 +233,8 @@ void __kmpc_flush(ident_t *) {
 // Tasking interfaces
 void * __kmpc_omp_task_alloc(ident_t *, // where
                              int32_t,   // gtid
-                             int32_t flags,
-                             size_t sizeOfTaskClosure, size_t sizeOfShareds,
-                             void * thunkPtr) {
+                             int32_t flags, size_t sizeOfTaskClosure,
+                             size_t sizeOfShareds, void * thunkPtr) {
   if (flags != 1) {
     // We do not support anything like untied, final, mergeable, etc.
     lomp::fatalError("LOMP does not support advanced task features, "

@@ -111,8 +111,8 @@ typedef enum sched_type : int32_t {
 #define SCHEDULE_HAS_NO_MODIFIERS(s)                                           \
   (((s) & (kmp_sch_modifier_nonmonotonic | kmp_sch_modifier_monotonic)) == 0)
 #define SCHEDULE_GET_MODIFIERS(s)                                              \
-  ((enum sched_type)((s) & (kmp_sch_modifier_nonmonotonic |                    \
-                            kmp_sch_modifier_monotonic)))
+  ((enum sched_type)(                                                          \
+      (s) & (kmp_sch_modifier_nonmonotonic | kmp_sch_modifier_monotonic)))
 } kmp_sched_t;
 
 extern "C" {

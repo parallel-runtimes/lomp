@@ -138,30 +138,19 @@ class contiguousWork {
   // canonical form it represents one iteration (with value zero).
   // Less than is more convenient here, since the empty (0,0) case can occur, and it
   // is hard to represent in the canonical form.
-  typedef struct {
-    // We need the compiler to realise that these may be updated at any time, so
-    // they have to be atomic types, even if we don't always need the atomic
-    // operations.
-    std::atomic<unsignedType> base; // Only written by the owner, so
-                                    // operations (such as ++) do not
-                                    // need to be atomic, all we need
-                                    // to ensure is that there is no
-                                    // tearing and that ordering is
-                                    // correct.
-    std::atomic<unsignedType> end;  // Can be written by any of the
-                                    // other threads when they are
-                                    // stealing work.
-  } bounds_t;
-
+  // N.B. The bounds here are based on a "less than" calculation, unlike the canonical
+  // bounds which use <=. Therefore here (0,0) represents no iterations, whereas in the
+  // canonical form it represents one iteration (with value zero).
+  // Less than is more convenient here, since the empty (0,0) case can occur, and it
+  // is hard to represent in the canonical form.
   union CACHE_ALIGNED {
+    // For some reason GCC requires that we name the struct, while LLVM is happy
+    // for it to be anonymous, so we name it, and then have to type a little more
+    // in a few places.
     struct {
       std::atomic<unsignedType> atomicBase;
       std::atomic<unsignedType> atomicEnd;
-    };
-    struct {
-      unsignedType base;
-      unsignedType end;
-    };
+    } ab;
     pairType pair;
     std::atomic<pairType> atomicPair;
   };
@@ -172,40 +161,47 @@ class contiguousWork {
   // Number of iterations this thread has started to execute. (One may still be in flight).
   std::atomic<unsignedType> iterationsStarted;
 
-  auto setBase(unsignedType nb) {
-    return atomicBase.store(nb, std::memory_order_release);
+  auto setBase(unsignedType b, std::memory_order order) {
+    return ab.atomicBase.store(b, order);
+  }
+  auto setEnd(unsignedType e, std::memory_order order) {
+    return ab.atomicEnd.store(e, order);
   }
 
 public:
   contiguousWork() {}
   contiguousWork(unsignedType b, unsignedType e)
       : stealing(false), iterationsStarted(0) {
-    base = b;
-    end = e;
+    assign(b, e);
   }
   contiguousWork(contiguousWork * other) {
     // N.B. NOT loaded atomically over both parts, but that's fine, since when we update
     // we'll use a wide CAS, so if it changed at all we'll see it.
-    base = other->getBase();
-    end = other->getEnd();
+    assign(other->getBase(), other->getEnd());
   }
   ~contiguousWork() {}
 
+  auto getBase(std::memory_order order = std::memory_order_acquire) const {
+    return ab.atomicBase.load(order);
+  }
+  auto getEnd(std::memory_order order = std::memory_order_acquire) const {
+    return ab.atomicEnd.load(order);
+  }
   auto getIterations() const {
     return getEnd() - getBase();
   }
-  auto getBase() const {
-    return atomicBase.load(std::memory_order_acquire);
-  }
-  auto getEnd() const {
-    return atomicEnd.load(std::memory_order_acquire);
-  }
+  void initializeBalanced(unsignedType count, uint32_t thread,
+                          uint32_t numThreads);
   void assign(unsignedType b, unsignedType e) {
-    // No need for atomicity here.
-    base = b;
-    end = e;
+    // No need for atomicity here; we're copying into a local value.
+    ab.atomicBase.store(b, std::memory_order_relaxed);
+    ab.atomicEnd.store(e, std::memory_order_relaxed);
   }
-
+  void zeroStarted() {
+    iterationsStarted.store(0, std::memory_order_release);
+  }
+  bool trySteal(unsignedType * basep, unsignedType * endp);
+  bool incrementBase(unsignedType * oldp);
   auto isStealing() const {
     return stealing.load(std::memory_order_acquire);
   }
@@ -218,16 +214,10 @@ public:
   auto getStarted() const {
     return iterationsStarted.load(std::memory_order_acquire);
   }
+  // Only the owning thread modifies the started field so this need not be atomic.
   void incrStarted() {
-    iterationsStarted.fetch_add(1, std::memory_order_release);
+    iterationsStarted.store(getStarted() + 1, std::memory_order_release);
   }
-  void zeroStarted() {
-    iterationsStarted.store(0, std::memory_order_release);
-  }
-  void initializeBalanced(unsignedType count, uint32_t thread,
-                          uint32_t numThreads);
-  bool trySteal(unsignedType * basep, unsignedType * endp);
-  bool incrementBase(unsignedType * oldp);
 };
 
 // The packed, non-template, version so that we can put one into each thread.

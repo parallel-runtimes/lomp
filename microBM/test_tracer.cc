@@ -11,7 +11,15 @@
 
 #include <omp.h>
 #include <cstdio>
-#define EVENT_TRACE_ENABLED 1
+
+// Force DEBUG here, since this is a test for code that is only
+// compiled when DEBUG is enabled. It is useful to be able to run the
+// test even if the CMAKE-ery does not enable DEBUG!
+#if (defined(DEBUG))
+#undef DEBUG
+#endif
+
+#define DEBUG 1
 #include "event-trace.h"
 
 int main(int, char **) {
