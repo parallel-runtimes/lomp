@@ -13,7 +13,7 @@ otherLocks = ("O", "P")  # OpenMP, pthread_mutex
 nonSpeculativeLocks = ("A", "B", "C", "M", "T", "U") + otherLocks
 speculativeLocks = ("Q", "R")
 runDesc = BMutils.runDescription(
-    getExecutable("locks"),
+    BMutils.getExecutable("microBM/locks"),
     {
         "C": nonSpeculativeLocks,
         # S only makes sense with icc or clang
@@ -30,4 +30,4 @@ runDesc = BMutils.runDescription(
     },
     "Locks",
 )
-BMutil.runBM(runDesc)
+BMutils.runBM(runDesc)

@@ -18,6 +18,7 @@
 ///
 //===----------------------------------------------------------------------===//
 
+#include <cstdarg>
 #include <cstdint>
 #include <cstring>
 #include <string>
