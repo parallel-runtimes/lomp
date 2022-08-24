@@ -84,11 +84,8 @@ inline void CommitSpeculation() {
 // So we seem forced to have to use a macro, even though after inlining the compiler should
 // be able to see that there is a literal constant at the call site!
 
-#if defined(__clang__)
 #define Target_AbortSpeculation(tag) _xabort(tag)
-#else
-#define Target_AbortSpeculation(tag) Target::_xabort(tag)
-#endif
+
 #endif /* TARGET_HAS_SPECULATION */
 
 #endif
