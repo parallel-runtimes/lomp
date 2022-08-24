@@ -14,6 +14,7 @@
 #endif
 
 #include <x86intrin.h>
+#include <immintrin.h>
 
 // Properties of the ABI, how many register arguments are there?
 #define MAX_REGISTER_ARGS 6
@@ -69,6 +70,7 @@ inline bool HaveSpeculation() {
                        : "a"(7), "c"(0));
   return (cpuid.ebx & (1 << 11)) != 0;
 }
+
 inline int32_t StartSpeculation() {
   return _xbegin();
 }
@@ -81,7 +83,9 @@ inline void CommitSpeculation() {
 // Tag must be a compile time known constant, since it's an immediate in the instruction.
 // So we seem forced to have to use a macro, even though after inlining the compiler should
 // be able to see that there is a literal constant at the call site!
+
 #define Target_AbortSpeculation(tag) _xabort(tag)
+
 #endif /* TARGET_HAS_SPECULATION */
 
 #endif

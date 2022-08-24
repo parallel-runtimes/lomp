@@ -160,7 +160,7 @@ public:
 // in <omp.h>, but then not have the function definition in libgomp!
 // Try to hack around that
 static bool hintsIgnored = false;
-#if (0 && __GNUC__)
+#if defined(__GNUC__)
 extern "C" {
 void omp_init_lock_with_hint(omp_lock_t * lock, omp_lock_hint_t)
     __attribute__((weak));
