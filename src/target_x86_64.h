@@ -80,11 +80,16 @@ inline bool InSpeculation() {
 inline void CommitSpeculation() {
   _xend();
 }
-// Tag must be a compile time known constant, since it's an immediate in the instruction.
-// So we seem forced to have to use a macro, even though after inlining the compiler should
-// be able to see that there is a literal constant at the call site!
 
+// Tag must be a compile time known constant, since it's an immediate in the
+// instruction.  So we seem forced to have to use a macro, even though after
+// inlining the compiler should be able to see that there is a literal constant
+// at the call site!
+#if defined(__clang__)
 #define Target_AbortSpeculation(tag) _xabort(tag)
+#else
+#define Target_AbortSpeculation(tag) Target::_xabort(tag)
+#endif
 
 #endif /* TARGET_HAS_SPECULATION */
 
