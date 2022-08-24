@@ -48,7 +48,7 @@ static void eprintf(char const * tag, char const * Format, va_list & VarArgs,
   // Writing to a stream (even stderr) need not be atomic.
   // Since this is for error messages we'd rather ensure we see them than
   // be efficient about how many system calls we make!
-  write(STDERR_FILENO, &buffer[0], pos);
+  pos = write(STDERR_FILENO, &buffer[0], pos);
 }
 
 // Having these error functions here makes it possible to use just this object file
