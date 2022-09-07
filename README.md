@@ -108,7 +108,7 @@ possibly incomplete, list is:
 * ordered loops;
 * the [`teams`](https://www.openmp.org/spec-html/5.1/openmpse15.html#x62-620002.7)
   and
-  [`distribute`](https://www.openmp.org/spec-html/5.1/openmpsu50.html#x75-800002.11.6.1) constructs.
+  [`distribute`](https://www.openmp.org/spec-html/5.1/openmpsu50.html#x75-800002.11.6.1) constructs;
 * the [cancellation](https://www.openmp.org/spec-html/5.1/openmpse28.html#x144-1560002.20) constructs;
 * offloading to accelerator devices, such as GPUs; and
 * probably other things which we haven't noticed!
@@ -249,17 +249,17 @@ The following options can be set using the `cmake` command line interface:
   builds a static library instead.  The default is `on`.
 * `-DCMAKE_INSTALL_PREFIX=<path>`: Define the path that will be used to install
   LOMP.  The default is `/usr/local` on Linux* systems.
-* `-DLOMP_BUILD_MICROBM=[on|off]`: `on` builds the micro-benchmarks,
-  `off` does not, the default is `on`.
-* `-DLOMP_MICROBM_WITH_LOMP=[on|off]`: `on` links the micro-benchmarks with
-  LOMP,  `off` links them  against the native OpenMP runtime of the compiler
-  being used; the default is `off`.
 * `-DCMAKE_BUILD_TYPE=[release|debug|relwithdebinfo]`: `release` builds with
   optimization; `debug` builds without optimization and with debug
   information; `relwithdebinfo` builds with optimizations and debug
   information.  The default is `release`.
 * `-DCMAKE_VERBOSE_MAKEFILE=[on|off]`: `on` shows compiler invocation, while
   `off` does not.  The default is `off`.
+* `-DLOMP_ARM64_ARCHITECTURE=arch`: selects the ISA version for ARM64-based
+  processors; the default is `armv8.1`, use `armv8-a` for Raspberry Pi 3 and 4,
+  or `armv7-a` for Raspberry Pi 2.
+* `-DLOMP_BUILD_MICROBM=[on|off]`: `on` builds the micro-benchmarks,
+  `off` does not, the default is `on`.
 * `-DLOMP_GNU_SUPPORT=[on|off]`: `on` builds GCC entry points for libgomp;
   `off ` does not build these entry points; the default is `off`.  This option
   is for the brave and will likely produce errors, as most these entry points
@@ -268,14 +268,16 @@ The following options can be set using the `cmake` command line interface:
   compiler, `off` does not build these entry points; the default is `off`. This
   option is for the brave and will likely produce errors, as most of these
   entry points have not been implemented.
-* `-DLOMP_WARN_API_STUBS=[on|off]`: `on` emits warnings about entry point
-  stubs; `off` does not; the default is `on`.
+* `-DLOMP_MICROBM_WITH_LOMP=[on|off]`: `on` links the micro-benchmarks with
+  LOMP,  `off` links them  against the native OpenMP runtime of the compiler
+  being used; the default is `off`.
 * `-DLOMP_WARN_ARCH_FEATURES=[on|off]`: `on` emits a warning if a dummy
   function is used for an unsupported architectural feature; `off` does not;
   the default is `on`.
-* `-DLOMP_ARM64_ARCHITECTURE=arch`: selects the ISA version for ARM64-based
-  processors; the default is `armv8.1`, use `armv8-a` for Raspberry Pi 3 and 4,
-  or `armv7-a` for Raspberry Pi 2.
+* `-DLOMP_MAX_THREADS=[n]`: set the maximum number of threads supported by LOMP
+  to *n*.  The default is 256 threads.
+* `-DLOMP_WARN_API_STUBS=[on|off]`: `on` emits warnings about entry point
+  stubs; `off` does not; the default is `on`.
 
 ## Installing LOMP
 
