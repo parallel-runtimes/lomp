@@ -45,7 +45,7 @@ else()
   target_link_options(checkRandom PRIVATE -fopenmp)
 endif()
 
-if(CMAKE_SYSTEM_NAME EQUAL Linux)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   # Linux specific tests...
   # These two measure the performance of the futex system call which is
   # only available on Linux
