@@ -471,7 +471,7 @@ public:
 
 // A barrier in which threads count up or down, polling the appropriate counter.
 class AtomicUpDownBarrier : public Barrier, private memory::CacheAligned {
-  enum { MAX_THREADS = 64 };
+  enum { MAX_THREADS = 256 };
   AtomicUpDownCounter counters[2];
   AlignedUint32 barrierCounts[MAX_THREADS];
 
