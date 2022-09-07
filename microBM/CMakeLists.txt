@@ -157,3 +157,17 @@ endif()
 # add flags for RTM and/or cmpxchg16b
 add_mrtm_flag(locks)
 add_mcx16_flag(locks)
+
+# copy the Python scripts to the build directory
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/BMutils.py ${CMAKE_CURRENT_BINARY_DIR}/BMutils.py)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cpuInfo.py ${CMAKE_CURRENT_BINARY_DIR}/cpuInfo.py)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/generateCalls.py ${CMAKE_CURRENT_BINARY_DIR}/generateCalls.py)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/generateRandomAccess.py ${CMAKE_CURRENT_BINARY_DIR}/generateRandomAccess.py)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/runAtomics.py ${CMAKE_CURRENT_BINARY_DIR}/runAtomics.py)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/runBarriers.py ${CMAKE_CURRENT_BINARY_DIR}/runBarriers.py)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/runBook.py ${CMAKE_CURRENT_BINARY_DIR}/runBook.py)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/runFutex.py ${CMAKE_CURRENT_BINARY_DIR}/runFutex.py)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/runLocks.py ${CMAKE_CURRENT_BINARY_DIR}/runLocks.py)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/runLS.py ${CMAKE_CURRENT_BINARY_DIR}/runLS.py)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/runSchedTest.py ${CMAKE_CURRENT_BINARY_DIR}/runSchedTest.py)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/runScheduling.py ${CMAKE_CURRENT_BINARY_DIR}/runScheduling.py)
