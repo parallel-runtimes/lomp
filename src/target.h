@@ -179,6 +179,17 @@ std::string CPUModelName();
 
 #define CACHE_ALIGNED alignas(CACHELINE_SIZE)
 
+// Define the maximum number of threads that LOMP supports(plus the respective
+// log2 for binary trees). The int_log2 is inspired by the SO post at
+// https://stackoverflow.com/questions/23781506/compile-time-computing-of-number-of-bits-needed-to-encode-n-different-states
+constexpr int int_log2(int n) {
+  return n < 2 ? n : 1 + int_log2(n >> 1);
+}
+#ifndef LOMP_MAX_THREADS
+#define LOMP_MAX_THREADS 256
+#endif // LOMP_MAX_THREADS
+#define LOMP_LN2_MAX_THREADS int_log2(LOMP_MAX_THREADS - 1)
+
 #include <atomic>
 #include <complex>
 // Type traits so that we can find signed, unsigned and equivalent width unsigned ints.

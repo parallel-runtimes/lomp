@@ -48,7 +48,6 @@ void forceAffinity() {
 void forceAffinity() {}
 #endif
 
-#define MAX_THREADS 256
 #define NumSamples 1000
 #define InnerReps 1000
 
@@ -265,7 +264,7 @@ void measureAtomic(lomp::statistic * stats, Operation op) {
     return;
   }
   // Range has already been checked in main.
-  lomp::statistic threadStats[MAX_THREADS];
+  lomp::statistic threadStats[LOMP_MAX_THREADS];
 
 #pragma omp parallel
   {
@@ -317,8 +316,8 @@ void measureBackoff(lomp::statistic * stats) {
     return;
   }
   // Range has already been checked in main.
-  lomp::statistic threadStats[MAX_THREADS];
-  for (int i = 0; i < MAX_THREADS; i++)
+  lomp::statistic threadStats[LOMP_MAX_THREADS];
+  for (int i = 0; i < LOMP_MAX_THREADS; i++)
     threadStats[i].collectHist();
 
 #pragma omp parallel
@@ -401,9 +400,9 @@ struct opDesc * findOp(char const tag) {
 int main(int argc, char ** argv) {
   int nThreads = omp_get_max_threads();
 
-  if (nThreads > MAX_THREADS) {
-    printf("%d threads available, increase MAX_THREADS (%d)\n", nThreads,
-           MAX_THREADS);
+  if (nThreads > LOMP_MAX_THREADS) {
+    printf("%d threads available, increase LOMP_MAX_THREADS (%d)\n", nThreads,
+           LOMP_MAX_THREADS);
     return 1;
   }
 
@@ -432,7 +431,7 @@ int main(int argc, char ** argv) {
       printHelp();
       return 1;
     }
-    lomp::statistic threadCountStats[MAX_THREADS];
+    lomp::statistic threadCountStats[LOMP_MAX_THREADS];
     lomp::statistic * stats = &threadCountStats[0];
 
     measureAtomic(stats, op->op);
@@ -449,8 +448,8 @@ int main(int argc, char ** argv) {
 
   case 'B': {
     // Backoff stats
-    lomp::statistic threadCountStats[MAX_THREADS];
-    for (int i = 0; i < MAX_THREADS; i++)
+    lomp::statistic threadCountStats[LOMP_MAX_THREADS];
+    for (int i = 0; i < LOMP_MAX_THREADS; i++)
       threadCountStats[i].collectHist();
     lomp::statistic * stats = &threadCountStats[0];
 

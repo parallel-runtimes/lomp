@@ -48,8 +48,6 @@ void forceAffinity() {
 void forceAffinity() {}
 #endif
 
-#define MAX_THREADS 512
-
 class alignedUint32 {
   CACHE_ALIGNED std::atomic<uint32_t> value;
 
@@ -530,9 +528,9 @@ static void computeClockOffset(int64_t * offsets) {
 // to be the case.
 void measureVisibilityFrom(lomp::statistic * stats, int from) {
   int nThreads = omp_get_max_threads();
-  lomp::tsc_tick_count threadTimes[MAX_THREADS];
+  lomp::tsc_tick_count threadTimes[LOMP_MAX_THREADS];
   alignedUint32 * broadcastLineP = nullptr;
-  int64_t clockOffset[MAX_THREADS];
+  int64_t clockOffset[LOMP_MAX_THREADS];
   computeClockOffset(&clockOffset[0]);
 
 #pragma omp parallel
@@ -678,9 +676,9 @@ int main(int argc, char ** argv) {
   int nThreads = omp_get_max_threads();
   double tickInterval = lomp::tsc_tick_count::getTickTime();
 
-  if (nThreads > MAX_THREADS) {
-    printf("%d threads available, increase MAX_THREADS (%d)\n", nThreads,
-           MAX_THREADS);
+  if (nThreads > LOMP_MAX_THREADS) {
+    printf("%d threads available, increase LOMP_MAX_THREADS (%d)\n", nThreads,
+           LOMP_MAX_THREADS);
     return 1;
   }
 
@@ -714,7 +712,7 @@ int main(int argc, char ** argv) {
   checkCacheAligned(&arrayForMeasurement[1]);
 
 #if (0)
-  int64_t clockOffset[5][MAX_THREADS];
+  int64_t clockOffset[5][LOMP_MAX_THREADS];
   computeClockOffset(&clockOffset[0][0]);
   computeClockOffset(&clockOffset[1][0]);
   computeClockOffset(&clockOffset[2][0]);
@@ -733,7 +731,7 @@ int main(int argc, char ** argv) {
   // to zero it, but it doesn't hurt to be completely explicit!)
   doStores(&arrayForMeasurement[0]);
 
-  lomp::statistic threadStats[MAX_THREADS];
+  lomp::statistic threadStats[LOMP_MAX_THREADS];
   lomp::statistic lineStats[PAGE_SIZE / sizeof(syncOnlyChannel)];
   lomp::statistic * stats = &threadStats[0];
   // Most of the tests are per-thread but don't measure zero to zero.

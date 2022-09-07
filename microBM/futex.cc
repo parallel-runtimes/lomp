@@ -21,8 +21,6 @@
 #include "stats-timing.h"
 #include "channel.h"
 
-#define MAX_THREADS 512
-
 // General acces to the futex call
 static int32_t futex(int32_t * uaddr, int32_t futex_op, int32_t val,
                      const struct timespec * timeout, int32_t * uaddr2,
