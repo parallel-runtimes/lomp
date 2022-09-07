@@ -34,6 +34,7 @@ endif()
 if(LOMP_WARN_ARCH_FEATURES)
     target_compile_definitions(omp PRIVATE LOMP_WARN_ARCH_FEATURES=1)
 endif()
+target_compile_definitions(omp PRIVATE LOMP_MAX_THREADS=${LOMP_MAX_THREADS})
 
 target_link_libraries(omp pthread)
 

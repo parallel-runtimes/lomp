@@ -33,6 +33,7 @@ option(LOMP_BUILD_MICROBM "Build micro-benchmarks" ON)
 option(LOMP_BUILD_EXAMPLES "Build example programs" ON)
 option(LOMP_SERIAL "Build a serial version of the LOMP library" OFF)
 option(LOMP_SHARED_LIB "Build a shared-library version of LOMP" ON)
+set(LOMP_MAX_THREADS "256" CACHE STRING "Maximum number of threads supported by LOMP" )
 
 # Assume aarch64 v8.1a architecture by default.
 set(LOMP_ARM64_ARCHITECTURE "armv8.1a" CACHE STRING "Detailed aarch64 architecture passed to -march=")
@@ -65,7 +66,7 @@ message(STATUS "Architecture: ${LOMP_TARGET_ARCH}")
 if (${LOMP_TARGET_ARCH} STREQUAL "aarch64")
    add_compile_options(-march=${LOMP_ARM64_ARCHITECTURE})
    message("-- LOMP_ARM64_ARCHITECTURE=${LOMP_ARM64_ARCHITECTURE} => -march=${LOMP_ARM64_ARCHITECTURE}")
-   add_compile_definitions(LOMP_ARM64_ARCHITECTURE=${LOMP_ARM64_ARCHITECTURE})   
+   add_compile_definitions(LOMP_ARM64_ARCHITECTURE=${LOMP_ARM64_ARCHITECTURE})
 endif()
 
 # find all LOMP source files
@@ -149,8 +150,9 @@ if(Git_FOUND)
 else()
     set(LOMP_GIT_COMMIT_ID "unknown")
 endif()
-message (STATUS "LOMP build with Git commit ID: ${LOMP_GIT_COMMIT_ID}")
+message(STATUS "LOMP build with Git commit ID: ${LOMP_GIT_COMMIT_ID}")
 
+message(STATUS "Maximum number of threads supported set to ${LOMP_MAX_THREADS}")
 message(STATUS "Use LOMP for micro-benchmarks (LOMP_MICROBM_WITH_LOMP): ${LOMP_MICROBM_WITH_LOMP}")
 message(STATUS "Warn about missing API entry points (LOMP_WARN_API_STUBS): ${LOMP_WARN_API_STUBS}")
 message(STATUS "Warn about missing implementations for arch features (LOMP_WARN_ARCH_FEATURES): ${LOMP_WARN_ARCH_FEATURES}")

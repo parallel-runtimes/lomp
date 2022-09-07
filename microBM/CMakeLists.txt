@@ -10,6 +10,7 @@ include(FindOpenMP)
 include(FindPython3)
 
 add_compile_options(-fopenmp)
+add_compile_definitions(PRIVATE LOMP_MAX_THREADS=${LOMP_MAX_THREADS})
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 if(LOMP_ICC_SUPPORT)
