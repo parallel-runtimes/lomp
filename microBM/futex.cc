@@ -193,7 +193,7 @@ static void measureRootTime(lomp::statistic * stats, int maxNumWaiters) {
 static void futexRILOTime(lomp::statistic * stat, int const numWaiters,
                           int64_t const * offsets) {
   // This has false sharing, but it's not in the timed code.
-  uint64_t exitTime[MAX_THREADS];
+  uint64_t exitTime[LOMP_MAX_THREADS];
   futexSleep<1, 0> f;
 
 #pragma omp parallel
@@ -351,9 +351,9 @@ static void computeClockOffset(int64_t * offsets) {
 int main(int argc, char ** argv) {
   // Check that alignment is working
   int nThreads = omp_get_max_threads();
-  if (nThreads > MAX_THREADS) {
-    printf("%d threads available, increase MAX_THREADS (%d)\n", nThreads,
-           MAX_THREADS);
+  if (nThreads > LOMP_MAX_THREADS) {
+    printf("%d threads available, increase LOMP_MAX_THREADS (%d)\n", nThreads,
+           LOMP_MAX_THREADS);
     return 1;
   }
 
@@ -376,10 +376,10 @@ int main(int argc, char ** argv) {
     // Warm up...
 #pragma omp parallel
   { forceAffinity(); }
-  int64_t offsets[MAX_THREADS];
+  int64_t offsets[LOMP_MAX_THREADS];
   computeClockOffset(&offsets[0]);
 
-  lomp::statistic threadStats[MAX_THREADS];
+  lomp::statistic threadStats[LOMP_MAX_THREADS];
   lomp::statistic * stats = &threadStats[0];
   // Most of the tests are per-thread but don't measure zero to zero.
   int numStats = nThreads;
