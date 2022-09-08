@@ -28,7 +28,7 @@ def main():
     arch = BMU.arch
     threadLimit = BMU.cores
     # See if we can find out more about the machine
-    modelName = BMU.getModelName()
+    modelName = BMU.modelName
     # If we can't see if it's one of the machines we know about...
     if modelName == "":
         modelName = {

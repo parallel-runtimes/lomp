@@ -471,9 +471,8 @@ public:
 
 // A barrier in which threads count up or down, polling the appropriate counter.
 class AtomicUpDownBarrier : public Barrier, private memory::CacheAligned {
-  enum { MAX_THREADS = 64 };
   AtomicUpDownCounter counters[2];
-  AlignedUint32 barrierCounts[MAX_THREADS];
+  AlignedUint32 barrierCounts[LOMP_MAX_THREADS];
 
 public:
   using CacheAligned::operator new;
@@ -538,7 +537,6 @@ public:
 template <int branchingFactor, template <int> class counter>
 class fixedTreeCheckIn {
   // Per thread data
-  enum { MAX_THREADS = 256 };
   int NumThreads;
 
   struct {
@@ -546,10 +544,10 @@ class fixedTreeCheckIn {
     int position;             // Position within parent, in case it matters
     int numChildren;          // Number of children I have
     int sequence;             // Barrier count.
-  } localData[MAX_THREADS];
+  } localData[LOMP_MAX_THREADS];
   // Shared data
   counter<branchingFactor>
-      Counters[2][(MAX_THREADS + branchingFactor - 1) / branchingFactor];
+      Counters[2][(LOMP_MAX_THREADS + branchingFactor - 1) / branchingFactor];
 
 #if (DEBUG > 0)
   void dump(char const * msg) const {
@@ -628,18 +626,19 @@ class dynamicTreeCheckIn {
   int Depth;
 
   // Per thread data
-  enum { LN2_MAX_THREADS = 8, MAX_THREADS = (1 << LN2_MAX_THREADS) };
+  // enum { LOMP_LN2_MAX_THREADS = 8, LOMP_MAX_THREADS = (1 << LOMP_LN2_MAX_THREADS) };
   struct {
-    CACHE_ALIGNED int position
-        [LN2_MAX_THREADS]; // Counter to look at at each level up the tree
-    int sequence;          // Barrier count.
-  } localData[MAX_THREADS];
+    // Counter to look at at each level up the tree
+    CACHE_ALIGNED int position[LOMP_LN2_MAX_THREADS];
+    // Barrier count.
+    int sequence;
+  } localData[LOMP_MAX_THREADS];
 
   enum {
     // If we used an imbalanced allocation at the leaf this shoudl work
-    // MAX_NUM_SLOTS = (MAX_THREADS + branchingFactor - 1) / branchingFactor
+    // MAX_NUM_SLOTS = (LOMP_MAX_THREADS + branchingFactor - 1) / branchingFactor
     // but since we don't, we may need more, and this should be safe. I think!
-    MAX_NUM_SLOTS = (MAX_THREADS + 1) / 2
+    MAX_NUM_SLOTS = (LOMP_MAX_THREADS + 1) / 2
   };
   // Shared data which is updated
   atomicCounter<branchingFactor> Counters[2][MAX_NUM_SLOTS];
@@ -712,14 +711,14 @@ public:
   }
   ~dynamicTreeCheckIn() {}
   void init(int count) {
-    LOMP_ASSERT(count <= MAX_THREADS);
+    LOMP_ASSERT(count <= LOMP_MAX_THREADS);
     NumThreads = count;
     if (NumThreads == 1) {
       return;
     }
 
     Depth = ceilingLogN(branchingFactor, NumThreads);
-    int startBase[LN2_MAX_THREADS];
+    int startBase[LOMP_LN2_MAX_THREADS];
     startBase[0] = 0;
     auto p = 1;
     for (int d = 1; d < Depth; d++, p = p * branchingFactor) {
@@ -980,16 +979,15 @@ FOREACH_DYNAMICTREE_BARRIER(EXPAND_DYNAMICTREE_BARRIER, LBWBroadcast<4>, LBW4)
 // We could equally make this into a template and use our other, flag
 // counter here, though that would make the barrier quite large.
 class AllToAllAtomicBarrier : public Barrier, private memory::CacheAligned {
-  enum { MAX_THREADS = 64 };
   uint32_t NumThreads;
-  AlignedAtomicUint32 flags[2][MAX_THREADS];
-  AlignedUint32 sequence[MAX_THREADS];
+  AlignedAtomicUint32 flags[2][LOMP_MAX_THREADS];
+  AlignedUint32 sequence[LOMP_MAX_THREADS];
 
 public:
   using CacheAligned::operator new;
   using CacheAligned::operator delete;
   AllToAllAtomicBarrier(int NThreads) : NumThreads(NThreads) {
-    LOMP_ASSERT(NumThreads <= MAX_THREADS);
+    LOMP_ASSERT(NumThreads <= LOMP_MAX_THREADS);
     for (uint32_t i = 0; i < NumThreads; i++) {
       flags[0][i].store(0, std::memory_order_relaxed);
       // No need to clean flags[1] here; they'll be cleared
@@ -1050,7 +1048,8 @@ class distributedLogBarrier : public Barrier, private memory::CacheAligned {
   // needs access to things like the number of threads and rounds.
 protected:
   // Higher radices will need fewer entries, so this should be safe.
-  enum { LN2_MAX_THREADS = 8, MAX_THREADS = (1 << LN2_MAX_THREADS) };
+  // enum { LOMP_LN2_MAX_THREADS = 8, LOMP_MAX_THREADS = (1 << LOMP_LN2_MAX_THREADS) };
+
   // Data shared by all threads.
   int NumThreads;
   int NumRounds;
@@ -1058,15 +1057,15 @@ protected:
   // Data acessed between threads, but each thread wants a contiguous chunk.
   typedef union {
     CACHE_ALIGNED int forceAlignment;
-    std::atomic<bool> Flags[LN2_MAX_THREADS];
+    std::atomic<bool> Flags[LOMP_LN2_MAX_THREADS];
   } FlagArray;
-  FlagArray ThreadFlags[2][MAX_THREADS];
+  FlagArray ThreadFlags[2][LOMP_MAX_THREADS];
 
   struct {
     // Which set of flags should I use next?
     AlignedUint32 EntryCount;
-    int Neighbours[LN2_MAX_THREADS];
-  } ThreadData[MAX_THREADS];
+    int Neighbours[LOMP_LN2_MAX_THREADS];
+  } ThreadData[LOMP_MAX_THREADS];
 
   // To whom do I need to send in this round?
   virtual int neighbour(int me, int round) const = 0;
